@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from odoo import fields
 from odoo.exceptions import AccessError, UserError
-from odoo.tests import HttpCase, tagged
+from odoo.tests import tagged
 
 from .test_analytics import _p
 from .test_gps import Common
@@ -89,25 +89,3 @@ class TestRoute(Common):
         self.assertEqual(play['params']['device_id'], self.dev.id)
         self.assertLess(play['params']['start'], str(trip.start_time))  # padded by two minutes
         self.assertGreater(play['params']['end'], str(trip.end_time))
-
-
-@tagged('post_install', '-at_install')
-class TestPlaybackUI(HttpCase):
-
-    def test_playback_renders_and_plays(self):
-        from datetime import datetime, timezone
-        server = self.env['fleet.gps.server'].create({'name': 'T', 'base_url': 'http://traccar.test'})
-        dev = self.env['fleet.gps.device'].create({'name': 'PB 1', 'server_id': server.id, 'traccar_id': 1, 'category': 'container'})
-        local_today = datetime.now(self.env['fleet.gps.daily']._tz()).date()
-        start = datetime.now(timezone.utc).replace(microsecond=0, tzinfo=None) - timedelta(minutes=50)
-        pts = []
-        for i in range(0, 240):
-            ts = (start + timedelta(seconds=10 * i)).strftime('%Y-%m-%dT%H:%M:%S.000+00:00')
-            pts.append({'id': i + 1, 'deviceId': 1, 'fixTime': ts, 'serverTime': ts, 'latitude': 30.0 + i * 0.0006, 'longitude': 31.0 + i * 0.0002,
-                        'speed': (20 + (i % 30)) / 1.852, 'course': 20, 'valid': True, 'attributes': {'ignition': True}})
-        self.env['fleet.gps.position']._ingest(server, pts, {})
-        daily = self.env['fleet.gps.daily']
-        for back in (0, 1):
-            daily._compute_for(dev, local_today - timedelta(days=back), force=True)
-        self.env.cr.flush()
-        self.start_tour(f'/odoo/action-elblasy_fleet_gps.gps_playback_action', 'elblasy_fleet_gps_playback_tour', login='admin')

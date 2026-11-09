@@ -24,6 +24,14 @@ export class FleetGpsDashboard extends Component {
     static props = ["*"];
 
     setup() {
+        // Owl 2 calls template handlers with the render context as `this`: bind every method to the component
+        const proto = Object.getPrototypeOf(this);
+        for (const name of Object.getOwnPropertyNames(proto)) {
+            const fn = Object.getOwnPropertyDescriptor(proto, name).value;
+            if (name !== "constructor" && name !== "setup" && typeof fn === "function") {
+                this[name] = fn.bind(this);
+            }
+        }
         this.rootRef = useRef("rootRef");
         this.dailyRef = useRef("dailyRef");
         this.statusRef = useRef("statusRef");

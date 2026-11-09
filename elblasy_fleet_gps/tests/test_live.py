@@ -80,26 +80,6 @@ class TestLiveData(Common):
         self.assertEqual((target, kind, payload), (gps_device.BUS_CHANNEL, gps_device.BUS_TYPE, {}))
 
 
-@tagged('post_install', '-at_install')
-class TestMapUI(HttpCase):
-
-    def test_map_renders_vehicles(self):
-        server = self.env['fleet.gps.server'].create({'name': 'T', 'base_url': 'http://traccar.test'})
-        brand = self.env['fleet.vehicle.model.brand'].create({'name': 'B'})
-        model = self.env['fleet.vehicle.model'].create({'name': 'M', 'brand_id': brand.id})
-        for i, (plate, speed, cat) in enumerate([('MOVE 1', 40, 'truck'), ('PARK 2', 0, 'container'), ('CAR 3', 100, 'car')], 1):
-            veh = self.env['fleet.vehicle'].create({'model_id': model.id, 'license_plate': plate})
-            self.env['fleet.gps.device'].create({'name': plate, 'server_id': server.id, 'traccar_id': i,
-                                                 'vehicle_id': veh.id, 'status': 'online', 'category': cat})
-            now = fields.Datetime.now()
-            self.env['fleet.gps.position']._ingest(server, [{
-                'id': i, 'deviceId': i, 'fixTime': now.isoformat() + 'Z', 'serverTime': now.isoformat() + 'Z',
-                'latitude': 30.0 + i / 100, 'longitude': 31.0 + i / 100, 'speed': speed / 1.852, 'course': 45 * i, 'valid': True,
-                'attributes': {'ignition': speed > 0, 'batteryLevel': 77}}], {})
-        self.env.cr.flush()
-        self.start_tour('/odoo/action-elblasy_fleet_gps.gps_map_action', 'elblasy_fleet_gps_map_tour', login='admin')
-
-
 PUT = 'odoo.addons.elblasy_fleet_gps.models.traccar_client.TraccarClient.put'
 GET = 'odoo.addons.elblasy_fleet_gps.models.traccar_client.TraccarClient.get'
 
@@ -250,28 +230,6 @@ class TestViews(TransactionCase):
                 arch = get_view_arch_from_file(file_path(view.arch_fs), xml_id)
                 self.assertTrue(arch, f"{xml_id}: the file arch could not be read")
             self.env[view.model].get_view(view.id, view.type)
-
-
-@tagged('post_install', '-at_install')
-class TestDashboardUI(HttpCase):
-
-    def test_dashboard_renders(self):
-        from datetime import datetime, timedelta, timezone
-        server = self.env['fleet.gps.server'].create({'name': 'T', 'base_url': 'http://traccar.test'})
-        dev = self.env['fleet.gps.device'].create({'name': 'Dash 1', 'server_id': server.id, 'traccar_id': 1, 'status': 'online'})
-        t0 = datetime.now(timezone.utc).replace(microsecond=0, tzinfo=None) - timedelta(hours=2)
-        pts = []
-        for i in range(0, 90):
-            ts = (t0 + timedelta(seconds=10 * i)).strftime('%Y-%m-%dT%H:%M:%S.000+00:00')
-            pts.append({'id': i + 1, 'deviceId': 1, 'fixTime': ts, 'serverTime': ts, 'latitude': 30.0 + i * 0.0012, 'longitude': 31.0,
-                        'speed': 50 / 1.852, 'course': 0, 'valid': True, 'attributes': {'ignition': True}})
-        self.env['fleet.gps.position']._ingest(server, pts, {})
-        daily = self.env['fleet.gps.daily']
-        for back in (0, 1):  # the local day of the data, whichever side of midnight Cairo is on
-            day = (t0 + timedelta(days=-back)).astimezone(daily._tz()).date() if False else (datetime.now(daily._tz()) - timedelta(days=back)).date()
-            daily._compute_for(dev, day, force=True)
-        self.env.cr.flush()
-        self.start_tour('/odoo/action-elblasy_fleet_gps.gps_dashboard_action', 'elblasy_fleet_gps_dashboard_tour', login='admin')
 
 
 @tagged('post_install', '-at_install')

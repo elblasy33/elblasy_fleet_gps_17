@@ -17,13 +17,13 @@ class GpsGeocache(models.Model):
     key = fields.Char(required=True, index=True)
     address = fields.Char()
 
-    _key_uniq = models.Constraint('unique(key)', "Duplicate cache key.")
+    _sql_constraints = [('key_uniq', 'unique(key)', "Duplicate cache key.")]
 
     @api.model
     def _lookup(self, lat, lon):
         """Street-level address of a point, or False. Opt-in (Settings): it sends coordinates to the public OpenStreetMap
         Nominatim service. Cells of about 100 m share one lookup and every answer is kept."""
-        if not (lat or lon) or not self.env['ir.config_parameter'].sudo().get_bool('elblasy_fleet_gps.geocoding'):
+        if not (lat or lon) or not (self.env['ir.config_parameter'].sudo().get_param('elblasy_fleet_gps.geocoding') in ('True', 'true', '1')):
             return False
         lang = 'ar' if (self.env.user.lang or '').startswith('ar') else 'en'
         key = f"{lang}|{lat:.3f}|{lon:.3f}"

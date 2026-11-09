@@ -1,11 +1,11 @@
-import { Component, onMounted, onWillDestroy, onWillStart, proxy, signal, useProps } from "@odoo/owl";
+/** @odoo-module **/
+import { Component, onMounted, onWillDestroy, onWillStart, useRef, useState } from "@odoo/owl";
 import { loadBundle } from "@web/core/assets";
 import { registry } from "@web/core/registry";
 import { _t } from "@web/core/l10n/translation";
-import { formatFloat } from "@web/core/utils/numbers";
+import { formatFloat } from "@web/views/fields/formatters";
 import { localization } from "@web/core/l10n/localization";
 import { useService } from "@web/core/utils/hooks";
-import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 import { resolveStyle } from "../map/map_styles";
 import { applyIconScale, collapseAttribution, enableArabicShaping, hasWebGL, mapLang, withStyle } from "../map/map_common";
 import { distanceM, lerpAngle, markerHtml, vehicleState } from "../map/vehicle";
@@ -41,16 +41,16 @@ const colorOfBand = (b) => (b === 5 ? OVER_COLOR : BAND_COLORS[b]);
 
 export class FleetGpsPlayback extends Component {
     static template = "elblasy_fleet_gps.Playback";
-    props = useProps(standardActionServiceProps);
-    mapRef = signal.ref();
-    chartRef = signal.ref();
-    rootRef = signal.ref();
+    static props = ["*"];
 
     setup() {
+        this.mapRef = useRef("mapRef");
+        this.chartRef = useRef("chartRef");
+        this.rootRef = useRef("rootRef");
         this.orm = useService("orm");
         this.action = useService("action");
         const params = this.props.action?.params || this.props.action?.context || {};
-        this.state = proxy({
+        this.state = useState({
             devices: [],
             deviceId: params.device_id || 0,
             day: DateTime.local().toISODate(),
@@ -237,7 +237,7 @@ export class FleetGpsPlayback extends Component {
         if (document.fullscreenElement) {
             document.exitFullscreen();
         } else {
-            this.rootRef()?.requestFullscreen?.();
+            this.rootRef.el?.requestFullscreen?.();
         }
     }
 
@@ -330,7 +330,7 @@ export class FleetGpsPlayback extends Component {
 
     // ---------------------------------------------------------------------------------------------- map
     async initMap() {
-        const root = this.mapRef();
+        const root = this.mapRef.el;
         if (!root || !globalThis.maplibregl) {
             return;
         }
@@ -340,7 +340,7 @@ export class FleetGpsPlayback extends Component {
         }
         enableArabicShaping();
         const style = await resolveStyle(this.state.data ? "sat" : "light", mapLang());
-        if (!this.mapRef()) {
+        if (!this.mapRef.el) {
             return;
         }
         this.map = new globalThis.maplibregl.Map({ container: root, style, center: [31.2, 30.05], zoom: 6, attributionControl: { compact: true } });
@@ -360,7 +360,7 @@ export class FleetGpsPlayback extends Component {
     }
 
     scaleIcons() {
-        applyIconScale(this.map, this.rootRef(), this.state.data?.icon_size);
+        applyIconScale(this.map, this.rootRef.el, this.state.data?.icon_size);
     }
 
     makeMarker() {
@@ -449,7 +449,7 @@ export class FleetGpsPlayback extends Component {
 
     // ---------------------------------------------------------------------------------------------- chart
     drawChart() {
-        const el = this.chartRef();
+        const el = this.chartRef.el;
         if (!el || !globalThis.Chart) {
             return;
         }
@@ -458,7 +458,7 @@ export class FleetGpsPlayback extends Component {
         if (!this.pts.length) {
             return;
         }
-        const css = getComputedStyle(this.rootRef());
+        const css = getComputedStyle(this.rootRef.el);
         const v = (n) => css.getPropertyValue(n).trim();
         const step = Math.max(1, Math.ceil(this.pts.length / CHART_POINTS));
         const rows = this.pts.filter((_p, i) => i % step === 0 || i === this.pts.length - 1);

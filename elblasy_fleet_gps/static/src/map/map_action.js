@@ -1,15 +1,16 @@
-import { Component, onMounted, onWillDestroy, onWillStart, proxy, signal, useProps } from "@odoo/owl";
+/** @odoo-module **/
+import { Component, onMounted, onWillDestroy, onWillStart, useRef, useState } from "@odoo/owl";
 import { loadBundle } from "@web/core/assets";
 import { registry } from "@web/core/registry";
 import { _t } from "@web/core/l10n/translation";
 import { useService } from "@web/core/utils/hooks";
-import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 import { fencesToGeoJSON } from "./geofence";
 import { STYLE_LIST, resolveStyle } from "./map_styles";
 import { applyIconScale, collapseAttribution, enableArabicShaping, hasWebGL, mapLang, withStyle } from "./map_common";
 import { STATES, distanceM, ease, glideMs, hasPosition, lerpAngle, markerHtml, timeAgo, utcMs, vehicleState } from "./vehicle";
 
 const BUS_TYPE = "elblasy_fleet_gps/live";
+const BUS_CHANNEL = "elblasy_fleet_gps";
 const FULL_REFRESH_MS = 60000; // statuses can change without a position: refresh everything once a minute
 const POLL_MS = 10000; // no push from Traccar: the open map asks Odoo to pull, at most this often
 const TRAIL_POINTS = 40;
@@ -34,16 +35,16 @@ const store = {
 
 export class FleetGpsMap extends Component {
     static template = "elblasy_fleet_gps.Map";
-    props = useProps(standardActionServiceProps);
-    mapRef = signal.ref();
-    rootRef = signal.ref();
+    static props = ["*"];
 
     setup() {
+        this.mapRef = useRef("mapRef");
+        this.rootRef = useRef("rootRef");
         this.orm = useService("orm");
         this.action = useService("action");
-        this.bus = useService("bus_service");
+        this.bus = this.env.services.bus_service;
         this.notification = useService("notification");
-        this.state = proxy({
+        this.state = useState({
             loading: true,
             error: "",
             noGl: false,
@@ -72,7 +73,8 @@ export class FleetGpsMap extends Component {
         this.dirty = false;
 
         // a hidden tab costs the server nothing: updates wait until the user looks at the map again
-        const onBus = () => (document.hidden ? (this.stale = true) : this.refresh());
+        const refreshOnBus = () => (document.hidden ? (this.stale = true) : this.refresh());
+        const onBus = ({ detail }) => detail.some((n) => n.type === BUS_TYPE) && refreshOnBus();
         const onVisible = () => {
             if (!document.hidden && this.stale) {
                 this.stale = false;
@@ -86,8 +88,8 @@ export class FleetGpsMap extends Component {
         });
         onMounted(() => {
             this.initMap();
-            this.bus.subscribe(BUS_TYPE, onBus);
-            this.bus.start?.();
+            this.bus.addChannel(BUS_CHANNEL);
+            this.bus.addEventListener("notification", onBus);
         });
         // safety nets: a full refresh (statuses, bus down) and the relative times
         this._full = setInterval(() => (document.hidden ? (this.stale = true) : this.refresh(true)), FULL_REFRESH_MS);
@@ -95,7 +97,8 @@ export class FleetGpsMap extends Component {
         this._poll = setInterval(() => this.pollIfNoPush(), POLL_MS);
         this._extra = setInterval(() => !document.hidden && this.loadExtra(), 30000);
         onWillDestroy(() => {
-            this.bus.unsubscribe?.(BUS_TYPE, onBus);
+            this.bus.removeEventListener("notification", onBus);
+            this.bus.deleteChannel(BUS_CHANNEL);
             document.removeEventListener("visibilitychange", onVisible);
             clearInterval(this._full);
             clearInterval(this._tick);
@@ -165,7 +168,7 @@ export class FleetGpsMap extends Component {
 
     // ----------------------------------------------------------------------------------------------- map
     async initMap() {
-        const root = this.mapRef();
+        const root = this.mapRef.el;
         if (!root || !globalThis.maplibregl) {
             return;
         }
@@ -175,7 +178,7 @@ export class FleetGpsMap extends Component {
         }
         enableArabicShaping();
         const style = await resolveStyle(this.state.style, mapLang());
-        if (!this.mapRef()) {
+        if (!this.mapRef.el) {
             return; // left the screen while the style was loading
         }
         this.map = new globalThis.maplibregl.Map({
@@ -207,7 +210,7 @@ export class FleetGpsMap extends Component {
     }
 
     applyScale() {
-        applyIconScale(this.map, this.rootRef(), this.state.cfg.icon_size);
+        applyIconScale(this.map, this.rootRef.el, this.state.cfg.icon_size);
     }
 
     markerKey(d, info) {
@@ -509,7 +512,7 @@ export class FleetGpsMap extends Component {
     }
 
     toggleFullscreen() {
-        const root = this.rootRef();
+        const root = this.rootRef.el;
         if (document.fullscreenElement) {
             document.exitFullscreen();
         } else {

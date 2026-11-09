@@ -1,12 +1,12 @@
-import { Component, onMounted, onWillDestroy, onWillStart, proxy, signal, useProps } from "@odoo/owl";
+/** @odoo-module **/
+import { Component, onMounted, onWillDestroy, onWillStart, useRef, useState } from "@odoo/owl";
 import { loadBundle } from "@web/core/assets";
 import { registry } from "@web/core/registry";
 import { _t } from "@web/core/l10n/translation";
-import { formatFloat } from "@web/core/utils/numbers";
+import { formatFloat } from "@web/views/fields/formatters";
 import { formatInteger } from "@web/views/fields/formatters";
 import { useService } from "@web/core/utils/hooks";
 import { localization } from "@web/core/l10n/localization";
-import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 
 const { DateTime } = luxon;
 const REFRESH_MS = 60000;
@@ -21,22 +21,22 @@ const RANGES = {
 
 export class FleetGpsDashboard extends Component {
     static template = "elblasy_fleet_gps.Dashboard";
-    props = useProps(standardActionServiceProps);
-    rootRef = signal.ref();
-    dailyRef = signal.ref();
-    statusRef = signal.ref();
-    vehicleRef = signal.ref();
-    speedRef = signal.ref();
-    utilRef = signal.ref();
-    hourlyRef = signal.ref();
-    scoreRef = signal.ref();
-    eventsRef = signal.ref();
+    static props = ["*"];
 
     setup() {
+        this.rootRef = useRef("rootRef");
+        this.dailyRef = useRef("dailyRef");
+        this.statusRef = useRef("statusRef");
+        this.vehicleRef = useRef("vehicleRef");
+        this.speedRef = useRef("speedRef");
+        this.utilRef = useRef("utilRef");
+        this.hourlyRef = useRef("hourlyRef");
+        this.scoreRef = useRef("scoreRef");
+        this.eventsRef = useRef("eventsRef");
         this.orm = useService("orm");
         this.action = useService("action");
         this.charts = {};
-        this.state = proxy({ range: "7d", deviceId: 0, data: null, loading: true, error: "" });
+        this.state = useState({ range: "7d", deviceId: 0, data: null, loading: true, error: "" });
         this.ranges = [
             { key: "today", label: _t("Today") },
             { key: "7d", label: _t("7 days") },
@@ -145,7 +145,7 @@ export class FleetGpsDashboard extends Component {
     // ------------------------------------------------------------------------------------------------ charts
     /** Colours come from the page itself (CSS variables), so light and dark mode need no second palette in JS. */
     palette() {
-        const css = getComputedStyle(this.rootRef());
+        const css = getComputedStyle(this.rootRef.el);
         const v = (name) => css.getPropertyValue(name).trim();
         const states = this.state.data?.colors || {};
         return {
@@ -158,7 +158,7 @@ export class FleetGpsDashboard extends Component {
 
     mount(key, ref, config) {
         this.charts[key]?.destroy();
-        const el = ref();
+        const el = ref.el;
         if (el) {
             this.charts[key] = new globalThis.Chart(el, config);
         }
@@ -166,7 +166,7 @@ export class FleetGpsDashboard extends Component {
 
     draw() {
         const d = this.state.data;
-        if (!d || !globalThis.Chart || !this.rootRef()) {
+        if (!d || !globalThis.Chart || !this.rootRef.el) {
             return;
         }
         const c = this.palette();

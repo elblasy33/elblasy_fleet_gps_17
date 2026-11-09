@@ -1,3 +1,4 @@
+/** @odoo-module **/
 // Traccar stores geofence areas as WKT with "lat lon" order: CIRCLE (lat lon, radius), POLYGON ((lat lon, ...)), LINESTRING (lat lon, ...)
 const R = 6371008.8;
 

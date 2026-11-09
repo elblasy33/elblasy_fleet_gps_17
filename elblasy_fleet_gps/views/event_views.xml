@@ -4,7 +4,7 @@
         <field name="name">fleet.gps.event.list</field>
         <field name="model">fleet.gps.event</field>
         <field name="arch" type="xml">
-            <list create="0" edit="0" decoration-bf="not seen" decoration-danger="type == 'alarm'" decoration-warning="type == 'deviceOverspeed'">
+            <tree create="0" edit="0" decoration-bf="not seen" decoration-danger="type == 'alarm'" decoration-warning="type == 'deviceOverspeed'">
                 <field name="event_time"/>
                 <field name="device_id"/>
                 <field name="type"/>
@@ -14,7 +14,7 @@
                 <field name="latitude" optional="hide"/>
                 <field name="longitude" optional="hide"/>
                 <field name="seen" column_invisible="1"/>
-            </list>
+            </tree>
         </field>
     </record>
     <record id="gps_event_view_search" model="ir.ui.view">
@@ -54,7 +54,7 @@
     <record id="gps_event_action" model="ir.actions.act_window">
         <field name="name">Events</field>
         <field name="res_model">fleet.gps.event</field>
-        <field name="view_mode">list,graph</field>
+        <field name="view_mode">tree,graph</field>
         <field name="context">{'search_default_last7': 1}</field>
     </record>
     <record id="gps_event_action_seen" model="ir.actions.server">

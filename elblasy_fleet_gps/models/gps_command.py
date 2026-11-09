@@ -1,4 +1,4 @@
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 COMMANDS = [
@@ -30,21 +30,21 @@ class GpsCommand(models.TransientModel):
         attrs = {}
         if self.command_type == 'custom':
             if not (self.data or '').strip():
-                raise UserError(self.env._("Type the command text to send."))
+                raise UserError(_("Type the command text to send."))
             attrs['data'] = self.data.strip()
         elif self.command_type == 'positionPeriodic':
             if not 5 <= self.frequency <= 86400:
-                raise UserError(self.env._("The interval must be between 5 and 86400 seconds."))
+                raise UserError(_("The interval must be between 5 and 86400 seconds."))
             attrs['frequency'] = self.frequency
         return {'deviceId': self.device_id.traccar_id, 'type': self.command_type, 'attributes': attrs, 'textChannel': False}
 
     def action_send(self):
         self.ensure_one()
         if self.dangerous and not self.confirm_stop:
-            raise UserError(self.env._("Tick the confirmation: stopping an engine while the vehicle is moving is dangerous."))
+            raise UserError(_("Tick the confirmation: stopping an engine while the vehicle is moving is dangerous."))
         payload = self._payload()
         self.device_id.server_id._post('commands/send', payload)
-        self.device_id.message_post(body=self.env._("Command sent to the device by %(user)s: %(cmd)s", user=self.env.user.name,
+        self.device_id.message_post(body=_("Command sent to the device by %(user)s: %(cmd)s", user=self.env.user.name,
                                                     cmd=dict(COMMANDS)[self.command_type]))
         return {'type': 'ir.actions.client', 'tag': 'display_notification', 'params': {
-            'title': self.env._("Command sent"), 'message': dict(COMMANDS)[self.command_type], 'type': 'success'}}
+            'title': _("Command sent"), 'message': dict(COMMANDS)[self.command_type], 'type': 'success'}}

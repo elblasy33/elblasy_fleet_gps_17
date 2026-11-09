@@ -25,7 +25,7 @@
         &.o_gps_mini { width: unquote("min(17rem, calc(100% - 1.2rem))"); }
     }
     .o_gps_pb_ctrl { display: flex; align-items: center; gap: 0.45rem; }
-    .o_gps_pb_play { width: 2rem; height: 2rem; border: 0; border-radius: 50%; background: var(--gps-series); color: #fff; display: inline-flex; align-items: center; justify-content: center; flex: none; .oi { font-size: 1.2rem; } }
+    .o_gps_pb_play { width: 2rem; height: 2rem; border: 0; border-radius: 50%; background: var(--gps-series); color: #fff; display: inline-flex; align-items: center; justify-content: center; flex: none; .fa { font-size: 1.2rem; } }
     .o_gps_pb_slider { flex: 1; min-width: 0; height: 1rem; accent-color: var(--gps-series); }
     .o_gps_pb_time { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 0.85rem; min-width: 3.9rem; text-align: end; }
     .o_gps_pb_row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; }

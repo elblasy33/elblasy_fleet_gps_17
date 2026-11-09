@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 import json
 from unittest.mock import patch
 
@@ -111,12 +112,13 @@ class TestIngest(Common):
         Pos = self.env['fleet.gps.position']
         info = {1: {'id': 1, 'name': 'A', 'uniqueId': 'a'}, 2: {'id': 2, 'name': 'B', 'uniqueId': 'b'}}
         sent = []
-        original = type(self.env.cr).execute_values
+        from odoo.addons.elblasy_fleet_gps.models import gps_position
+        original = gps_position.execute_values
 
         def spy(cr, query, argslist, *a, **k):
             sent.append([(r[0], r[2]) for r in argslist])
             return original(cr, query, argslist, *a, **k)
-        with patch.object(type(self.env.cr), 'execute_values', spy):
+        with patch.object(gps_position, 'execute_values', spy):
             Pos._ingest(self.server, [_pos(9, dev=2), _pos(5, dev=1), _pos(7, dev=2), _pos(3, dev=1)], info)
         self.assertEqual(sent[0], sorted(sent[0]))
 
@@ -127,7 +129,7 @@ class TestIngest(Common):
     def test_purge(self):
         Pos = self.env['fleet.gps.position']
         Pos._ingest(self.server, [_pos(1, fix='2020-01-01T00:00:00.000+00:00', srv='2020-01-01T00:00:01.000+00:00')], {})
-        with patch('odoo.addons.base.models.ir_cron.IrCron._commit_progress', return_value=1):
+        with nullcontext():
             Pos._cron_purge()
         self.assertFalse(Pos.search([]))
 
@@ -136,11 +138,11 @@ class TestIngest(Common):
             if path == 'devices':
                 return [{'id': 1, 'name': 'P', 'uniqueId': 'p', 'status': 'online'}]
             return [_pos(1)]
-        with patch(CLIENT_GET, side_effect=fake), patch('odoo.addons.base.models.ir_cron.IrCron._commit_progress', return_value=1):
+        with patch(CLIENT_GET, side_effect=fake), nullcontext():
             self.env['fleet.gps.server']._cron_poll()
         self.assertEqual(self.env['fleet.gps.device'].search([('traccar_id', '=', 1)]).last_position_id, 1)
         with patch(CLIENT_GET, side_effect=TraccarError('network', 'down')), \
-                patch('odoo.addons.base.models.ir_cron.IrCron._commit_progress', return_value=1):
+                nullcontext():
             self.env['fleet.gps.server']._cron_poll()  # must not raise
 
 
@@ -150,7 +152,7 @@ class TestSecurity(Common):
     def test_user_cannot_read_secrets_or_write(self):
         user = self.env['res.users'].with_context(no_reset_password=True).create({
             'name': 'GU', 'login': 'gu', 'email': 'gu@example.com',
-            'group_ids': [(6, 0, [self.env.ref('elblasy_fleet_gps.group_gps_user').id])]})
+            'groups_id': [(6, 0, [self.env.ref('elblasy_fleet_gps.group_gps_user').id])]})
         srv = self.server.with_user(user)
         self.assertEqual(srv.name, 'T')
         with self.assertRaises(AccessError):

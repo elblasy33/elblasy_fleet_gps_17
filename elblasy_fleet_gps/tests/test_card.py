@@ -107,7 +107,7 @@ class TestGeocoding(Common):
         get.assert_not_called()
 
     def test_lookup_builds_a_short_address_and_caches_it_per_cell(self):
-        self.env['ir.config_parameter'].set_bool('elblasy_fleet_gps.geocoding', True)
+        self.env['ir.config_parameter'].set_param('elblasy_fleet_gps.geocoding', 'True')
         self.env.user.lang = 'en_US'
         with patch(HTTP, return_value=self.reply) as get:
             self.assertEqual(self.Cache._lookup(30.0001, 31.0001), 'Ring Road, Maadi, Cairo')
@@ -117,7 +117,7 @@ class TestGeocoding(Common):
         self.assertEqual(get.call_args.kwargs['params']['accept-language'], 'en')
 
     def test_failure_and_missing_position_return_false(self):
-        self.env['ir.config_parameter'].set_bool('elblasy_fleet_gps.geocoding', True)
+        self.env['ir.config_parameter'].set_param('elblasy_fleet_gps.geocoding', 'True')
         with patch(HTTP, side_effect=requests.ConnectionError('down')):
             self.assertFalse(self.Cache._lookup(30.0, 31.0))
         with patch(HTTP) as get:
@@ -165,6 +165,6 @@ class TestCommands(Common):
     def test_only_managers_can_send(self):
         user = self.env['res.users'].with_context(no_reset_password=True).create({
             'name': 'GU2', 'login': 'gu2', 'email': 'gu2@example.com',
-            'group_ids': [(6, 0, [self.env.ref('elblasy_fleet_gps.group_gps_user').id])]})
+            'groups_id': [(6, 0, [self.env.ref('elblasy_fleet_gps.group_gps_user').id])]})
         with self.assertRaises(AccessError):
             self.Wiz.with_user(user).create({'device_id': self.dev.id, 'command_type': 'rebootDevice'})

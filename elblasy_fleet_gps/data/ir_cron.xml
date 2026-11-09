@@ -6,6 +6,7 @@
         <field name="state">code</field>
         <field name="code">model._cron_poll()</field>
         <field name="interval_number">5</field>
+        <field name="numbercall">-1</field>
         <field name="interval_type">minutes</field>
     </record>
     <record id="cron_gps_purge" model="ir.cron">
@@ -14,6 +15,7 @@
         <field name="state">code</field>
         <field name="code">model._cron_purge()</field>
         <field name="interval_number">1</field>
+        <field name="numbercall">-1</field>
         <field name="interval_type">days</field>
     </record>
     <record id="cron_gps_compute" model="ir.cron">
@@ -22,6 +24,7 @@
         <field name="state">code</field>
         <field name="code">model._cron_compute()</field>
         <field name="interval_number">15</field>
+        <field name="numbercall">-1</field>
         <field name="interval_type">minutes</field>
     </record>
     <record id="cron_gps_backfill" model="ir.cron">
@@ -30,6 +33,7 @@
         <field name="state">code</field>
         <field name="code">model._cron_step()</field>
         <field name="interval_number">1</field>
+        <field name="numbercall">-1</field>
         <field name="interval_type">minutes</field>
     </record>
     <record id="cron_gps_subscription" model="ir.cron">
@@ -38,6 +42,7 @@
         <field name="state">code</field>
         <field name="code">model._cron_subscription_alerts()</field>
         <field name="interval_number">1</field>
+        <field name="numbercall">-1</field>
         <field name="interval_type">days</field>
     </record>
 </odoo>

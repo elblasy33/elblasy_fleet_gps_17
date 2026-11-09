@@ -5,7 +5,7 @@
         <field name="name">fleet.gps.daily.list</field>
         <field name="model">fleet.gps.daily</field>
         <field name="arch" type="xml">
-            <list create="0" edit="0" default_order="date desc, distance_km desc">
+            <tree create="0" edit="0" default_order="date desc, distance_km desc">
                 <field name="date"/>
                 <field name="device_id"/>
                 <field name="vehicle_id" optional="show"/>
@@ -20,7 +20,7 @@
                 <field name="over_count" sum="Total" optional="show"/>
                 <field name="harsh_total" sum="Total" optional="show"/>
                 <field name="score" widget="progressbar" optional="show"/>
-            </list>
+            </tree>
         </field>
     </record>
     <record id="gps_daily_view_pivot" model="ir.ui.view">
@@ -75,7 +75,7 @@
     <record id="gps_daily_action" model="ir.actions.act_window">
         <field name="name">Daily Summary</field>
         <field name="res_model">fleet.gps.daily</field>
-        <field name="view_mode">pivot,graph,list</field>
+        <field name="view_mode">pivot,graph,tree</field>
         <field name="context">{'search_default_last7': 1}</field>
     </record>
 
@@ -84,7 +84,7 @@
         <field name="name">fleet.gps.trip.list</field>
         <field name="model">fleet.gps.trip</field>
         <field name="arch" type="xml">
-            <list create="0" edit="0">
+            <tree create="0" edit="0">
                 <field name="device_id"/>
                 <field name="vehicle_id" optional="show"/>
                 <field name="driver_id" optional="show"/>
@@ -94,7 +94,7 @@
                 <field name="distance_km" sum="Total"/>
                 <field name="avg_speed"/>
                 <field name="max_speed"/>
-            </list>
+            </tree>
         </field>
     </record>
     <record id="gps_trip_view_pivot" model="ir.ui.view">
@@ -129,7 +129,7 @@
     <record id="gps_trip_action" model="ir.actions.act_window">
         <field name="name">Trips</field>
         <field name="res_model">fleet.gps.trip</field>
-        <field name="view_mode">list,pivot</field>
+        <field name="view_mode">tree,pivot</field>
         <field name="context">{'search_default_last7': 1}</field>
     </record>
 
@@ -147,7 +147,7 @@
         <field name="name">fleet.gps.stop.list</field>
         <field name="model">fleet.gps.stop</field>
         <field name="arch" type="xml">
-            <list create="0" edit="0">
+            <tree create="0" edit="0">
                 <field name="device_id"/>
                 <field name="vehicle_id" optional="show"/>
                 <field name="start_time"/>
@@ -157,7 +157,7 @@
                 <field name="ignition" widget="boolean"/>
                 <field name="latitude" optional="hide"/>
                 <field name="longitude" optional="hide"/>
-            </list>
+            </tree>
         </field>
     </record>
     <record id="gps_stop_view_search" model="ir.ui.view">
@@ -186,7 +186,7 @@
     <record id="gps_stop_action" model="ir.actions.act_window">
         <field name="name">Stops</field>
         <field name="res_model">fleet.gps.stop</field>
-        <field name="view_mode">list</field>
+        <field name="view_mode">tree</field>
         <field name="context">{'search_default_last7': 1}</field>
     </record>
 
@@ -197,7 +197,7 @@
         <field name="model">fleet.gps.daily</field>
         <field name="priority">20</field>
         <field name="arch" type="xml">
-            <list create="0" edit="0" default_order="score asc"
+            <tree create="0" edit="0" default_order="score asc"
                   decoration-danger="score &lt; 60 and moving_hours &gt; 0" decoration-warning="score &gt;= 60 and score &lt; 80 and moving_hours &gt; 0">
                 <field name="date"/>
                 <field name="device_id"/>
@@ -211,7 +211,7 @@
                 <field name="harsh_accel" sum="Total"/>
                 <field name="score" widget="progressbar"/>
                 <field name="moving_hours" column_invisible="1"/>
-            </list>
+            </tree>
         </field>
     </record>
     <record id="gps_daily_view_pivot_behavior" model="ir.ui.view">
@@ -232,10 +232,10 @@
     <record id="gps_behavior_action" model="ir.actions.act_window">
         <field name="name">Driving Behaviour</field>
         <field name="res_model">fleet.gps.daily</field>
-        <field name="view_mode">pivot,list,graph</field>
+        <field name="view_mode">pivot,tree,graph</field>
         <field name="view_ids" eval="[(5, 0, 0),
             (0, 0, {'view_mode': 'pivot', 'view_id': ref('gps_daily_view_pivot_behavior')}),
-            (0, 0, {'view_mode': 'list', 'view_id': ref('gps_daily_view_list_behavior')}),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('gps_daily_view_list_behavior')}),
             (0, 0, {'view_mode': 'graph', 'view_id': ref('gps_daily_view_graph')})]"/>
         <field name="context">{'search_default_last7': 1, 'search_default_active': 1}</field>
     </record>
@@ -254,7 +254,7 @@
     <record id="gps_waiting_action" model="ir.actions.act_window">
         <field name="name">Waiting by Place</field>
         <field name="res_model">fleet.gps.stop</field>
-        <field name="view_mode">pivot,list</field>
+        <field name="view_mode">pivot,tree</field>
         <field name="context">{'search_default_last7': 1, 'search_default_over10': 1}</field>
     </record>
 
@@ -295,12 +295,12 @@
         <field name="name">fleet.gps.backfill.list</field>
         <field name="model">fleet.gps.backfill</field>
         <field name="arch" type="xml">
-            <list>
+            <tree>
                 <field name="name"/>
                 <field name="state" widget="badge" decoration-info="state == 'running'" decoration-success="state == 'done'" decoration-danger="state == 'failed'"/>
                 <field name="progress" widget="progressbar"/>
                 <field name="positions"/>
-            </list>
+            </tree>
         </field>
     </record>
     <record id="gps_backfill_view_form" model="ir.ui.view">
@@ -341,7 +341,7 @@
     <record id="gps_backfill_action" model="ir.actions.act_window">
         <field name="name">History Import</field>
         <field name="res_model">fleet.gps.backfill</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">tree,form</field>
     </record>
 
     <menuitem id="menu_gps_reports" name="Reports" parent="menu_gps_root" sequence="30"/>

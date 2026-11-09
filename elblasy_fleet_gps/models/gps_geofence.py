@@ -23,7 +23,7 @@ class GpsGeofence(models.Model):
     traccar_id = fields.Integer("Traccar ID", required=True, index=True, copy=False)
     area = fields.Text("Area (WKT)", help="CIRCLE (lat lon, radius) / POLYGON ((lat lon, ...)) / LINESTRING (lat lon, ...)")
 
-    _server_traccar_uniq = models.Constraint('unique(server_id, traccar_id)', "This Traccar geofence already exists.")
+    _sql_constraints = [('server_traccar_uniq', 'unique(server_id, traccar_id)', "This Traccar geofence already exists.")]
 
     @api.model
     def _import_from_server(self, server):

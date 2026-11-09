@@ -4,14 +4,14 @@
         <field name="name">fleet.gps.server.list</field>
         <field name="model">fleet.gps.server</field>
         <field name="arch" type="xml">
-            <list>
+            <tree>
                 <field name="name"/>
                 <field name="base_url"/>
                 <field name="device_count"/>
                 <field name="last_push_date"/>
                 <field name="last_test_result"/>
                 <field name="company_id" groups="base.group_multi_company"/>
-            </list>
+            </tree>
         </field>
     </record>
     <record id="gps_server_view_form" model="ir.ui.view">
@@ -66,6 +66,6 @@
     <record id="gps_server_action" model="ir.actions.act_window">
         <field name="name">Traccar Servers</field>
         <field name="res_model">fleet.gps.server</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">tree,form</field>
     </record>
 </odoo>

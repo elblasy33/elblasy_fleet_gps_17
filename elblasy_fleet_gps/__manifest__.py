@@ -1,6 +1,6 @@
 {
     'name': 'Elblasy Fleet GPS (Traccar)',
-    'version': '20.0.1.3.0',
+    'version': '17.0.1.3.0',
     'author': 'Elblasy.app',
     'website': 'https://elblasy.app',
     'category': 'Human Resources/Fleet',
@@ -15,7 +15,7 @@ receive positions by push (Traccar forward.url) with a polling cron as a safety 
     'external_dependencies': {'python': ['requests']},
     'data': [
         'security/security.xml',
-        'security/ir.access.csv',
+        'security/ir.model.access.csv',
         'views/gps_server_views.xml',
         'views/gps_device_views.xml',
         'views/fleet_vehicle_views.xml',
@@ -41,9 +41,6 @@ receive positions by push (Traccar forward.url) with a polling cron as a safety 
             'elblasy_fleet_gps/static/src/playback/*.dark.scss',
         ],
         # heavy (1 MB): only downloaded when the live map is opened, never for the rest of the backend
-        'web.assets_tests': [
-            'elblasy_fleet_gps/static/tests/tours/*.js',
-        ],
         'elblasy_fleet_gps.map_lib': [
             'elblasy_fleet_gps/static/lib/maplibre/maplibre-gl.js',
             'elblasy_fleet_gps/static/lib/maplibre/maplibre-gl.css',

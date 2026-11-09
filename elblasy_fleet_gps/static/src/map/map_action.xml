@@ -1,121 +1,121 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="elblasy_fleet_gps.Map">
-        <div class="o_gps_map" t-ref="this.rootRef" t-att-class="{ o_gps_list_open: this.state.listOpen, o_gps_has_sel: this.selectedRow }">
+        <div class="o_gps_map" t-ref="rootRef" t-att-class="{ o_gps_list_open: state.listOpen, o_gps_has_sel: selectedRow }">
             <!-- ============================================================ vehicle list -->
             <aside class="o_gps_panel">
                 <div class="o_gps_panel_head">
-                    <span class="o_gps_live" t-att-class="{ o_gps_live_err: this.state.error }"/>
+                    <span class="o_gps_live" t-att-class="{ o_gps_live_err: state.error }"/>
                     <span class="o_gps_title">Live map</span>
-                    <span class="o_gps_total" t-out="this.counts.all"/>
-                    <button class="o_gps_x d-md-none" t-on-click="() => this.state.listOpen = false" title="Close"><i class="oi" data-icon="close"/></button>
+                    <span class="o_gps_total" t-out="counts.all"/>
+                    <button class="o_gps_x d-md-none" t-on-click="() => this.state.listOpen = false" title="Close"><i class="fa fa-times"/></button>
                 </div>
                 <div class="o_gps_search">
-                    <i class="oi" data-icon="search"/>
-                    <input type="search" placeholder="Search plate, driver…" t-att-value="this.state.search" t-on-input="this.onSearch"/>
+                    <i class="fa fa-search"/>
+                    <input type="search" placeholder="Search plate, driver…" t-att-value="state.search" t-on-input="onSearch"/>
                 </div>
                 <div class="o_gps_chips">
-                    <button t-foreach="this.filters" t-as="f" t-key="f.key" class="o_gps_chip"
-                            t-att-class="{ active: this.state.filter === f.key }" t-on-click="() => this.state.filter = f.key">
+                    <button t-foreach="filters" t-as="f" t-key="f.key" class="o_gps_chip"
+                            t-att-class="{ active: state.filter === f.key }" t-on-click="() => this.state.filter = f.key">
                         <t t-out="f.label"/> <span class="o_gps_chip_n" t-out="f.count"/>
                     </button>
                 </div>
-                <div t-if="this.state.error" class="o_gps_error" t-out="this.state.error"/>
+                <div t-if="state.error" class="o_gps_error" t-out="state.error"/>
                 <div class="o_gps_rows">
-                    <button t-foreach="this.rows" t-as="r" t-key="r.d.id" class="o_gps_row"
-                            t-att-class="{ active: this.state.selected === r.d.id }" t-on-click="() => this.select(r.d.id)">
+                    <button t-foreach="rows" t-as="r" t-key="r.d.id" class="o_gps_row"
+                            t-att-class="{ active: state.selected === r.d.id }" t-on-click="() => this.select(r.d.id)">
                         <span class="o_gps_dot" t-att-style="'background:' + r.color"/>
                         <span class="o_gps_row_main">
                             <span class="o_gps_row_name" t-out="r.d.plate or r.d.name"/>
                             <span class="o_gps_row_sub">
-                                <t t-if="r.d.driver"><t t-out="r.d.driver"/> · </t><t t-out="this.stateLabel(r.d)"/>
+                                <t t-if="r.d.driver"><t t-out="r.d.driver"/> · </t><t t-out="stateLabel(r.d)"/>
                             </span>
                         </span>
                         <span class="o_gps_row_side">
-                            <span t-if="r.vs === 'moving' or r.vs === 'over'" class="o_gps_speed" t-att-style="'color:' + r.color"><t t-out="this.fmtSpeed(r.d.speed)"/> <small>km/h</small></span>
-                            <span class="o_gps_ago" t-out="this.ago(r.d.last_update or r.d.fix_time)"/>
+                            <span t-if="r.vs === 'moving' or r.vs === 'over'" class="o_gps_speed" t-att-style="'color:' + r.color"><t t-out="fmtSpeed(r.d.speed)"/> <small>km/h</small></span>
+                            <span class="o_gps_ago" t-out="ago(r.d.last_update or r.d.fix_time)"/>
                         </span>
                     </button>
-                    <div t-if="!this.state.loading and !this.rows.length" class="o_gps_empty">
-                        <i class="oi" data-icon="directions_car"/>
-                        <span t-if="this.counts.all">No vehicle matches.</span>
+                    <div t-if="!state.loading and !rows.length" class="o_gps_empty">
+                        <i class="fa fa-car"/>
+                        <span t-if="counts.all">No vehicle matches.</span>
                         <span t-else="">No GPS device yet. Import them from Configuration → Servers.</span>
                     </div>
                 </div>
             </aside>
             <!-- ============================================================ map -->
             <div class="o_gps_stage">
-                <div class="o_gps_canvas" t-ref="this.mapRef"/>
-                <div t-if="this.state.noGl" class="o_gps_nogl">
-                    <i class="oi" data-icon="warning"/>
+                <div class="o_gps_canvas" t-ref="mapRef"/>
+                <div t-if="state.noGl" class="o_gps_nogl">
+                    <i class="fa fa-exclamation-triangle"/>
                     <span>This browser cannot draw the map (WebGL is unavailable). The vehicle list still works.</span>
                 </div>
                 <button class="o_gps_fab d-md-none" t-on-click="() => this.state.listOpen = true">
-                    <i class="oi" data-icon="view_list"/><span t-out="this.counts.all"/>
+                    <i class="fa fa-list"/><span t-out="counts.all"/>
                 </button>
                 <div class="o_gps_tools">
                     <div class="o_gps_tool_wrap">
-                        <button class="o_gps_tool" title="Map style" t-on-click="() => this.state.styleMenu = !this.state.styleMenu"><i class="oi" data-icon="stacks"/></button>
-                        <div t-if="this.state.styleMenu" class="o_gps_menu">
-                            <button t-foreach="this.styles" t-as="s" t-key="s.key" t-att-class="{ active: this.state.style === s.key }" t-on-click="() => this.setStyle(s.key)">
-                                <t t-out="s.label"/><i t-if="this.state.style === s.key" class="oi ms-auto" data-icon="check"/>
+                        <button class="o_gps_tool" title="Map style" t-on-click="() => this.state.styleMenu = !this.state.styleMenu"><i class="fa fa-clone"/></button>
+                        <div t-if="state.styleMenu" class="o_gps_menu">
+                            <button t-foreach="styles" t-as="s" t-key="s.key" t-att-class="{ active: state.style === s.key }" t-on-click="() => this.setStyle(s.key)">
+                                <t t-out="s.label"/><i t-if="state.style === s.key" class="fa fa-check ms-auto"/>
                             </button>
                         </div>
                     </div>
-                    <button class="o_gps_tool" title="Show all vehicles" t-on-click="this.fitAll"><i class="oi" data-icon="my_location"/></button>
-                    <button class="o_gps_tool" t-att-class="{ on: this.state.labels }" title="Plate labels" t-on-click="this.toggleLabels"><i class="oi" data-icon="label"/></button>
-                    <button class="o_gps_tool" t-att-class="{ on: this.state.trails }" title="Movement trails" t-on-click="this.toggleTrails"><i class="oi" data-icon="show_chart"/></button>
-                    <button class="o_gps_tool" t-att-class="{ on: this.state.fences }" title="Geofences" t-on-click="this.toggleFences"><i class="oi" data-icon="explore"/></button>
-                    <button class="o_gps_tool" title="Full screen" t-on-click="this.toggleFullscreen"><i class="oi" data-icon="fullscreen"/></button>
+                    <button class="o_gps_tool" title="Show all vehicles" t-on-click="fitAll"><i class="fa fa-crosshairs"/></button>
+                    <button class="o_gps_tool" t-att-class="{ on: state.labels }" title="Plate labels" t-on-click="toggleLabels"><i class="fa fa-tag"/></button>
+                    <button class="o_gps_tool" t-att-class="{ on: state.trails }" title="Movement trails" t-on-click="toggleTrails"><i class="fa fa-line-chart"/></button>
+                    <button class="o_gps_tool" t-att-class="{ on: state.fences }" title="Geofences" t-on-click="toggleFences"><i class="fa fa-compass"/></button>
+                    <button class="o_gps_tool" title="Full screen" t-on-click="toggleFullscreen"><i class="fa fa-expand"/></button>
                 </div>
                 <div class="o_gps_legend d-none d-md-flex">
-                    <span t-foreach="this.legend" t-as="l" t-key="l.vs"><i t-att-style="'background:' + l.color"/><t t-out="l.label"/></span>
+                    <span t-foreach="legend" t-as="l" t-key="l.vs"><i t-att-style="'background:' + l.color"/><t t-out="l.label"/></span>
                 </div>
                 <!-- ======================================================== selected vehicle -->
-                <div t-if="this.selectedRow" class="o_gps_card">
-                    <t t-set="r" t-value="this.selectedRow"/>
+                <div t-if="selectedRow" class="o_gps_card">
+                    <t t-set="r" t-value="selectedRow"/>
                     <div class="o_gps_card_head">
                         <span class="o_gps_dot" t-att-style="'background:' + r.color"/>
                         <div class="o_gps_card_title">
                             <b t-out="r.d.plate or r.d.name"/>
-                            <small><t t-out="this.stateLabel(r.d)"/><t t-if="r.d.driver"> · <t t-out="r.d.driver"/></t></small>
+                            <small><t t-out="stateLabel(r.d)"/><t t-if="r.d.driver"> · <t t-out="r.d.driver"/></t></small>
                         </div>
-                        <button class="o_gps_x" t-on-click="this.closeCard" title="Close"><i class="oi" data-icon="close"/></button>
+                        <button class="o_gps_x" t-on-click="closeCard" title="Close"><i class="fa fa-times"/></button>
                     </div>
                     <div class="o_gps_stats">
-                        <div><i class="oi" data-icon="speed"/><b><t t-out="this.fmtSpeed(r.d.speed)"/></b><small>km/h</small></div>
-                        <div><i class="oi" data-icon="key"/><b t-out="r.d.ignition ? this.ignitionOn : this.ignitionOff"/><small>Ignition</small></div>
-                        <div t-if="r.d.battery"><i class="oi" data-icon="battery_full"/><b><t t-out="Math.round(r.d.battery)"/>%</b><small>Battery</small></div>
-                        <div><i class="oi" data-icon="schedule"/><b t-out="this.ago(r.d.fix_time)"/><small>Last fix</small></div>
+                        <div><i class="fa fa-tachometer"/><b><t t-out="fmtSpeed(r.d.speed)"/></b><small>km/h</small></div>
+                        <div><i class="fa fa-key"/><b t-out="r.d.ignition ? ignitionOn : ignitionOff"/><small>Ignition</small></div>
+                        <div t-if="r.d.battery"><i class="fa fa-battery-full"/><b><t t-out="Math.round(r.d.battery)"/>%</b><small>Battery</small></div>
+                        <div><i class="fa fa-clock-o"/><b t-out="ago(r.d.fix_time)"/><small>Last fix</small></div>
                     </div>
-                    <div class="o_gps_since" t-if="this.state.extra">
-                        <span t-if="this.state.extra.since_motion"><i class="oi" data-icon="schedule"/><t t-if="r.vs === 'moving' or r.vs === 'over'">Moving for</t><t t-else="">Stopped for</t> <b t-out="this.since(this.state.extra.since_motion)"/></span>
-                        <span t-if="this.state.extra.since_ignition"><i class="oi" data-icon="key"/><t t-if="r.d.ignition">Engine on for</t><t t-else="">Engine off for</t> <b t-out="this.since(this.state.extra.since_ignition)"/></span>
-                        <span t-if="this.state.extra.still and !(r.vs === 'moving' or r.vs === 'over')"><i class="oi" data-icon="location_on"/>At this place <t t-if="this.state.extra.still.at_least">for over </t><b t-out="this.since(this.state.extra.still.since)"/></span>
-                        <span t-if="this.state.extra.silence" class="o_gps_silence"><i class="oi" data-icon="warning"/><t t-out="this.silenceText"/></span>
+                    <div class="o_gps_since" t-if="state.extra">
+                        <span t-if="state.extra.since_motion"><i class="fa fa-clock-o"/><t t-if="r.vs === 'moving' or r.vs === 'over'">Moving for</t><t t-else="">Stopped for</t> <b t-out="since(state.extra.since_motion)"/></span>
+                        <span t-if="state.extra.since_ignition"><i class="fa fa-key"/><t t-if="r.d.ignition">Engine on for</t><t t-else="">Engine off for</t> <b t-out="since(state.extra.since_ignition)"/></span>
+                        <span t-if="state.extra.still and !(r.vs === 'moving' or r.vs === 'over')"><i class="fa fa-map-marker"/>At this place <t t-if="state.extra.still.at_least">for over </t><b t-out="since(state.extra.still.since)"/></span>
+                        <span t-if="state.extra.silence" class="o_gps_silence"><i class="fa fa-exclamation-triangle"/><t t-out="silenceText"/></span>
                     </div>
-                    <div class="o_gps_addr" t-if="r.d.address or (this.state.extra and this.state.extra.address)"><i class="oi" data-icon="location_on"/><span t-out="r.d.address or this.state.extra.address"/></div>
+                    <div class="o_gps_addr" t-if="r.d.address or (state.extra and state.extra.address)"><i class="fa fa-map-marker"/><span t-out="r.d.address or state.extra.address"/></div>
                     <div class="o_gps_coords" t-if="r.d.lat or r.d.lon"><t t-out="r.d.lat.toFixed(5)"/>, <t t-out="r.d.lon.toFixed(5)"/></div>
-                    <button class="o_gps_more" t-on-click="this.toggleDetails"><i class="oi" t-att-data-icon="this.state.details ? 'keyboard_arrow_up' : 'keyboard_arrow_down'"/> <t t-if="this.state.details">Hide details</t><t t-else="">Vehicle details</t></button>
-                    <div class="o_gps_details" t-if="this.state.details">
+                    <button class="o_gps_more" t-on-click="toggleDetails"><i t-attf-class="fa fa-{{state.details ? 'angle-up' : 'angle-down'}}"/> <t t-if="state.details">Hide details</t><t t-else="">Vehicle details</t></button>
+                    <div class="o_gps_details" t-if="state.details">
                         <div t-if="r.d.vehicle"><span>Vehicle</span><b t-out="r.d.vehicle"/></div>
                         <div t-if="r.d.driver"><span>Driver</span><b t-out="r.d.driver"/></div>
-                        <div t-if="r.d.imei"><span>IMEI</span><b dir="ltr" t-out="r.d.imei"/><button t-on-click="() => this.copy(r.d.imei)" title="Copy"><i class="oi" data-icon="content_copy"/></button></div>
-                        <div t-if="r.d.phone"><span>SIM</span><a t-att-href="'tel:' + r.d.phone" dir="ltr" t-out="r.d.phone"/><button t-on-click="() => this.copy(r.d.phone)" title="Copy"><i class="oi" data-icon="content_copy"/></button></div>
-                        <div t-if="r.d.iccid"><span>ICCID</span><b dir="ltr" t-out="r.d.iccid"/><button t-on-click="() => this.copy(r.d.iccid)" title="Copy"><i class="oi" data-icon="content_copy"/></button></div>
+                        <div t-if="r.d.imei"><span>IMEI</span><b dir="ltr" t-out="r.d.imei"/><button t-on-click="() => this.copy(r.d.imei)" title="Copy"><i class="fa fa-files-o"/></button></div>
+                        <div t-if="r.d.phone"><span>SIM</span><a t-att-href="'tel:' + r.d.phone" dir="ltr" t-out="r.d.phone"/><button t-on-click="() => this.copy(r.d.phone)" title="Copy"><i class="fa fa-files-o"/></button></div>
+                        <div t-if="r.d.iccid"><span>ICCID</span><b dir="ltr" t-out="r.d.iccid"/><button t-on-click="() => this.copy(r.d.iccid)" title="Copy"><i class="fa fa-files-o"/></button></div>
                         <div t-if="r.d.model"><span>Device model</span><b t-out="r.d.model"/></div>
                         <div t-if="r.d.group"><span>Group</span><b t-out="r.d.group"/></div>
                         <div t-if="r.d.subscription_end"><span>Subscription ends</span><b t-att-class="r.d.subscription_state === 'expired' ? 'text-danger' : ''" t-out="r.d.subscription_end"/></div>
-                        <div t-if="this.state.extra and this.state.extra.events.length" class="o_gps_events">
+                        <div t-if="state.extra and state.extra.events.length" class="o_gps_events">
                             <span>Latest events</span>
-                            <ul><li t-foreach="this.state.extra.events" t-as="e" t-key="e_index"><t t-out="e.label"/> <small t-out="e.time"/></li></ul>
+                            <ul><li t-foreach="state.extra.events" t-as="e" t-key="e_index"><t t-out="e.label"/> <small t-out="e.time"/></li></ul>
                         </div>
                     </div>
                     <div class="o_gps_card_actions">
-                        <button class="btn btn-sm btn-primary" t-on-click="() => this.openVehicle(r.d)"><i class="oi me-1" data-icon="directions_car"/>Vehicle</button>
-                        <button class="btn btn-sm btn-secondary" t-on-click="() => this.openPlayback(r.d)"><i class="oi me-1" data-icon="history"/>Playback</button>
-                        <button class="btn btn-sm btn-secondary" t-att-class="{ active: this.state.follow }" t-on-click="this.toggleFollow"><i class="oi me-1" data-icon="my_location"/>Follow</button>
-                        <button class="btn btn-sm btn-secondary" t-on-click="() => this.openMapsLink(r.d)"><i class="oi me-1" data-icon="explore"/>Directions</button>
+                        <button class="btn btn-sm btn-primary" t-on-click="() => this.openVehicle(r.d)"><i class="fa fa-car me-1"/>Vehicle</button>
+                        <button class="btn btn-sm btn-secondary" t-on-click="() => this.openPlayback(r.d)"><i class="fa fa-history me-1"/>Playback</button>
+                        <button class="btn btn-sm btn-secondary" t-att-class="{ active: state.follow }" t-on-click="toggleFollow"><i class="fa fa-crosshairs me-1"/>Follow</button>
+                        <button class="btn btn-sm btn-secondary" t-on-click="() => this.openMapsLink(r.d)"><i class="fa fa-compass me-1"/>Directions</button>
                     </div>
                 </div>
             </div>

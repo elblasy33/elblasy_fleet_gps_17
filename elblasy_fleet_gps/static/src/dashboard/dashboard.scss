@@ -30,7 +30,7 @@
     .o_gps_select { background: var(--gps-panel); color: inherit; border: 1px solid var(--gps-border); border-radius: 0.5rem; padding: 0.35rem 0.6rem; max-width: 12rem; }
     .o_gps_icon_btn { border: 1px solid var(--gps-border); background: var(--gps-panel); color: inherit; border-radius: 0.5rem; width: 2.2rem; height: 2.2rem; display: inline-flex; align-items: center; justify-content: center; &:hover { background: var(--gps-hover); } }
     .o_gps_dash_error { margin-bottom: 1rem; padding: 0.6rem 0.9rem; border-radius: 0.5rem; background: rgba(239, 68, 68, 0.12); color: #dc2626; }
-    .o_gps_dash_empty { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem; padding: 0.7rem 0.9rem; border-radius: 0.5rem; background: var(--gps-panel); border: 1px dashed var(--gps-border); color: var(--gps-muted); .oi { font-size: 1.4rem; } }
+    .o_gps_dash_empty { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem; padding: 0.7rem 0.9rem; border-radius: 0.5rem; background: var(--gps-panel); border: 1px dashed var(--gps-border); color: var(--gps-muted); .fa { font-size: 1.4rem; } }
 
     .o_gps_kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
     .o_gps_kpi {
@@ -48,8 +48,8 @@
     }
     .o_gps_insights { margin-bottom: 0.75rem;
         ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem 1.5rem; }
-        li { display: flex; gap: 0.5rem; align-items: flex-start; line-height: 1.4; .oi { margin-top: 0.1rem; flex: none; } }
-        .o_gps_ins_warn .oi { color: #d97706; } .o_gps_ins_good .oi { color: #16a34a; } .o_gps_ins_info .oi { color: var(--gps-series); }
+        li { display: flex; gap: 0.5rem; align-items: flex-start; line-height: 1.4; .fa { margin-top: 0.1rem; flex: none; } }
+        .o_gps_ins_warn .fa { color: #d97706; } .o_gps_ins_good .fa { color: #16a34a; } .o_gps_ins_info .fa { color: var(--gps-series); }
     }
     .o_gps_card_box.o_gps_full { grid-column: 1 / -1; }
     .o_gps_heat { overflow-x: auto; }

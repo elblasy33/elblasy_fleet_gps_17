@@ -1,65 +1,65 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="elblasy_fleet_gps.Playback">
-        <div class="o_gps_map o_gps_pb" t-ref="this.rootRef">
+        <div class="o_gps_map o_gps_pb" t-ref="rootRef">
             <div class="o_gps_pb_bar">
                 <h1 class="o_gps_pb_title">Playback</h1>
-                <select class="o_gps_select" t-on-change="this.onDevice">
-                    <option t-foreach="this.state.devices" t-as="dv" t-key="dv.id" t-att-value="dv.id" t-att-selected="dv.id === this.state.deviceId" t-out="dv.name"/>
+                <select class="o_gps_select" t-on-change="onDevice">
+                    <option t-foreach="state.devices" t-as="dv" t-key="dv.id" t-att-value="dv.id" t-att-selected="dv.id === state.deviceId" t-out="dv.name"/>
                 </select>
                 <div class="o_gps_pb_day">
-                    <button class="o_gps_icon_btn" title="Previous day" t-on-click="() => this.shiftDay(-1)"><i class="oi" data-icon="chevron_left"/></button>
-                    <input type="date" class="o_gps_select" t-att-value="this.state.day" t-on-change="this.onDay"/>
-                    <button class="o_gps_icon_btn" title="Next day" t-on-click="() => this.shiftDay(1)"><i class="oi" data-icon="chevron_right"/></button>
+                    <button class="o_gps_icon_btn" title="Previous day" t-on-click="() => this.shiftDay(-1)"><i class="fa fa-chevron-left"/></button>
+                    <input type="date" class="o_gps_select" t-att-value="state.day" t-on-change="onDay"/>
+                    <button class="o_gps_icon_btn" title="Next day" t-on-click="() => this.shiftDay(1)"><i class="fa fa-chevron-right"/></button>
                 </div>
-                <select class="o_gps_select" t-on-change="this.onTrip" t-if="this.state.data and this.state.data.trips.length">
+                <select class="o_gps_select" t-on-change="onTrip" t-if="state.data and state.data.trips.length">
                     <option value="-1">Whole day</option>
-                    <option t-foreach="this.state.data.trips" t-as="tr" t-key="tr_index" t-att-value="tr_index" t-att-selected="tr_index === this.state.tripIdx" t-out="this.fmtTrip(tr)"/>
+                    <option t-foreach="state.data.trips" t-as="tr" t-key="tr_index" t-att-value="tr_index" t-att-selected="tr_index === state.tripIdx" t-out="fmtTrip(tr)"/>
                 </select>
-                <span t-if="this.state.data and this.state.data.source === 'traccar'" class="o_gps_badge_note" title="Not stored in Odoo: read from Traccar for this playback">from Traccar</span>
+                <span t-if="state.data and state.data.source === 'traccar'" class="o_gps_badge_note" title="Not stored in Odoo: read from Traccar for this playback">from Traccar</span>
             </div>
 
             <div class="o_gps_stage">
-                <div class="o_gps_canvas" t-ref="this.mapRef"/>
-                <div t-if="this.state.noGl" class="o_gps_nogl"><i class="oi" data-icon="warning"/><span>This browser cannot draw the map (WebGL is unavailable).</span></div>
-                <div t-if="this.state.error" class="o_gps_pb_msg o_gps_pb_err" t-out="this.state.error"/>
-                <div t-elif="!this.state.loading and this.state.data and !this.state.data.pts.length" class="o_gps_pb_msg">
-                    <i class="oi" data-icon="location_on"/>
+                <div class="o_gps_canvas" t-ref="mapRef"/>
+                <div t-if="state.noGl" class="o_gps_nogl"><i class="fa fa-exclamation-triangle"/><span>This browser cannot draw the map (WebGL is unavailable).</span></div>
+                <div t-if="state.error" class="o_gps_pb_msg o_gps_pb_err" t-out="state.error"/>
+                <div t-elif="!state.loading and state.data and !state.data.pts.length" class="o_gps_pb_msg">
+                    <i class="fa fa-map-marker"/>
                     <span>No positions for this vehicle on this day.</span>
                 </div>
                 <div class="o_gps_legend d-none d-md-flex o_gps_pb_legend">
-                    <span t-foreach="this.legend" t-as="l" t-key="l.l"><i t-att-style="'background:' + l.c"/><t t-out="l.l"/></span>
+                    <span t-foreach="legend" t-as="l" t-key="l.l"><i t-att-style="'background:' + l.c"/><t t-out="l.l"/></span>
                     <small>km/h</small>
                 </div>
-                <div class="o_gps_pb_panel" t-att-class="{ o_gps_mini: this.state.mini }">
+                <div class="o_gps_pb_panel" t-att-class="{ o_gps_mini: state.mini }">
                     <div class="o_gps_pb_ctrl">
-                        <button class="o_gps_pb_play" t-on-click="this.toggle" t-att-title="this.state.playing ? 'Pause' : 'Play'">
-                            <i class="oi" t-att-data-icon="this.state.playing ? 'pause' : 'play_arrow'"/>
+                        <button class="o_gps_pb_play" t-on-click="toggle" t-att-title="state.playing ? 'Pause' : 'Play'">
+                            <i t-attf-class="fa fa-{{state.playing ? 'pause' : 'play'}}"/>
                         </button>
-                        <input class="o_gps_pb_slider" type="range" t-att-min="this.state.range[0]" t-att-max="this.state.range[1]" step="1000"
-                               t-att-value="this.state.t" t-on-input="this.onSlider"/>
-                        <span class="o_gps_pb_time" t-out="this.fmtTime(this.state.t)"/>
-                        <button class="o_gps_icon_btn o_gps_pb_fold" t-on-click="this.toggleMini" t-att-title="this.state.mini ? 'Show controls' : 'Hide controls'">
-                            <i class="oi" t-att-data-icon="this.state.mini ? 'keyboard_arrow_up' : 'keyboard_arrow_down'"/>
+                        <input class="o_gps_pb_slider" type="range" t-att-min="state.range[0]" t-att-max="state.range[1]" step="1000"
+                               t-att-value="state.t" t-on-input="onSlider"/>
+                        <span class="o_gps_pb_time" t-out="fmtTime(state.t)"/>
+                        <button class="o_gps_icon_btn o_gps_pb_fold" t-on-click="toggleMini" t-att-title="state.mini ? 'Show controls' : 'Hide controls'">
+                            <i t-attf-class="fa fa-{{state.mini ? 'angle-up' : 'angle-down'}}"/>
                         </button>
                     </div>
-                    <div class="o_gps_pb_row" t-if="!this.state.mini">
-                        <button class="o_gps_icon_btn" title="Back 5 min" t-on-click="() => this.jump(-300)"><i class="oi" data-icon="fast_rewind"/></button>
-                        <button class="o_gps_icon_btn" title="Forward 5 min" t-on-click="() => this.jump(300)"><i class="oi" data-icon="fast_forward"/></button>
-                        <select class="o_gps_select o_gps_pb_speed" t-on-change="this.onSpeed" title="Playback speed">
-                            <option t-foreach="this.speeds" t-as="m" t-key="m" t-att-value="m" t-att-selected="this.state.mult === m"><t t-out="m"/>×</option>
+                    <div class="o_gps_pb_row" t-if="!state.mini">
+                        <button class="o_gps_icon_btn" title="Back 5 min" t-on-click="() => this.jump(-300)"><i class="fa fa-fast-backward"/></button>
+                        <button class="o_gps_icon_btn" title="Forward 5 min" t-on-click="() => this.jump(300)"><i class="fa fa-fast-forward"/></button>
+                        <select class="o_gps_select o_gps_pb_speed" t-on-change="onSpeed" title="Playback speed">
+                            <option t-foreach="speeds" t-as="m" t-key="m" t-att-value="m" t-att-selected="state.mult === m"><t t-out="m"/>×</option>
                         </select>
-                        <span class="o_gps_pb_stat"><b t-out="this.cursorInfo.kmh"/> <small>km/h</small></span>
-                        <span class="o_gps_pb_stat"><b t-out="this.cursorInfo.km"/><small>/<t t-out="this.totalKm"/> km</small></span>
-                        <span class="o_gps_pb_stat"><i class="oi" data-icon="key"/> <b t-out="this.cursorInfo.ign ? 'ON' : 'OFF'"/></span>
+                        <span class="o_gps_pb_stat"><b t-out="cursorInfo.kmh"/> <small>km/h</small></span>
+                        <span class="o_gps_pb_stat"><b t-out="cursorInfo.km"/><small>/<t t-out="totalKm"/> km</small></span>
+                        <span class="o_gps_pb_stat"><i class="fa fa-key"/> <b t-out="cursorInfo.ign ? 'ON' : 'OFF'"/></span>
                         <span class="o_gps_pb_spacer"/>
-                        <button class="o_gps_icon_btn" t-att-class="{ on: this.state.follow }" title="Follow" t-on-click="this.toggleFollow"><i class="oi" data-icon="my_location"/></button>
-                        <button class="o_gps_icon_btn" t-att-class="{ on: this.state.showChart }" title="Speed chart" t-on-click="this.toggleChart"><i class="oi" data-icon="show_chart"/></button>
-                        <button class="o_gps_icon_btn" title="Full screen" t-on-click="this.toggleFullscreen"><i class="oi" data-icon="fullscreen"/></button>
+                        <button class="o_gps_icon_btn" t-att-class="{ on: state.follow }" title="Follow" t-on-click="toggleFollow"><i class="fa fa-crosshairs"/></button>
+                        <button class="o_gps_icon_btn" t-att-class="{ on: state.showChart }" title="Speed chart" t-on-click="toggleChart"><i class="fa fa-line-chart"/></button>
+                        <button class="o_gps_icon_btn" title="Full screen" t-on-click="toggleFullscreen"><i class="fa fa-expand"/></button>
                     </div>
                 </div>
             </div>
-            <div class="o_gps_pb_chart" t-if="this.state.showChart"><canvas t-ref="this.chartRef"/></div>
+            <div class="o_gps_pb_chart" t-if="state.showChart"><canvas t-ref="chartRef"/></div>
         </div>
     </t>
 </templates>

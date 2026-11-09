@@ -1,7 +1,7 @@
 import logging
 from datetime import timedelta
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 
 from .traccar_client import parse_time
 
@@ -16,7 +16,7 @@ EVENT_TYPES = [
     ('textMessage', "Text message"), ('driverChanged', "Driver changed"), ('commandResult', "Command result"),
     ('media', "Media"), ('other', "Other"),
 ]
-KNOWN = {k for k, _ in EVENT_TYPES}
+KNOWN = {k for k, __ in EVENT_TYPES}
 GROUPS = {  # search filters
     'connection': ('deviceOnline', 'deviceOffline', 'deviceUnknown', 'deviceInactive'),
     'motion': ('deviceMoving', 'deviceStopped'),
@@ -50,7 +50,7 @@ class GpsEvent(models.Model):
     attributes = fields.Json()
     seen = fields.Boolean(default=False, index=True)
 
-    _device_event_uniq = models.UniqueIndex('(device_id, traccar_id)', "Duplicate event.")
+    _sql_constraints = [('device_event_uniq', 'unique(device_id, traccar_id)', "Duplicate event.")]
 
     @api.model
     def _ingest(self, server, events, devices_info=None, positions=None, geofences=None):
@@ -88,7 +88,7 @@ class GpsEvent(models.Model):
                 alarms.append((dev, vals['alarm']))
         records = self.sudo().create(vals_list) if vals_list else self.browse()
         for dev, alarm in alarms:
-            dev.message_post(body=self.env._("Alarm: %s", alarm))
+            dev.message_post(body=_("Alarm: %s", alarm))
         if records:
             latest = max(records.mapped('event_time'))
             if not server.last_event_time or latest > server.last_event_time:

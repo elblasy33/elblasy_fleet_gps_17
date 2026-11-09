@@ -4,7 +4,7 @@ import math
 import time
 from datetime import timedelta, timezone
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 from . import analytics
@@ -23,6 +23,7 @@ def _date(value):
         return False
 
 BUS_TYPE = 'elblasy_fleet_gps/live'
+BUS_CHANNEL = 'elblasy_fleet_gps'
 ICON_DEFAULT, ICON_MIN, ICON_MAX = 140, 50, 250  # percent: the Tracar dashboard drew its icons at 1.4x
 SUBSCRIPTION_WARN_DAYS = 14
 LIVE_FRESH = timedelta(minutes=5)
@@ -90,7 +91,7 @@ class GpsDevice(models.Model):
     def _compute_live_state(self):
         """Same rule as the live map (vehicle.js): an old fix is not "moving now", whatever speed it carried."""
         now = fields.Datetime.now()
-        limit = self.env['ir.config_parameter'].sudo().get_int('elblasy_fleet_gps.speed_limit') or 80
+        limit = int(self.env['ir.config_parameter'].sudo().get_param('elblasy_fleet_gps.speed_limit') or 0) or 80
         for d in self:
             if d.status != 'online':
                 state = 'offline'
@@ -103,8 +104,8 @@ class GpsDevice(models.Model):
             d.live_state = state
             if d.last_fix_time:
                 minutes = int((now - d.last_fix_time).total_seconds() // 60)
-                d.last_seen_ago = (self.env._("just now") if minutes < 1 else
-                                   f"{minutes} {self.env._('min')}" if minutes < 120 else f"{minutes // 60} {self.env._('h')}")
+                d.last_seen_ago = (_("just now") if minutes < 1 else
+                                   f"{minutes} {_('min')}" if minutes < 120 else f"{minutes // 60} {_('h')}")
             else:
                 d.last_seen_ago = False
 
@@ -116,9 +117,13 @@ class GpsDevice(models.Model):
             rec.subscription_state = 'none' if not end else 'expired' if end < today else \
                 'soon' if (end - today).days <= 14 else 'ok'
 
-    _server_traccar_uniq = models.Constraint('unique(server_id, traccar_id)', "This Traccar device already exists.")
-    _vehicle_uniq = models.UniqueIndex('(vehicle_id) WHERE (vehicle_id IS NOT NULL AND active IS TRUE)',
-                                       "A vehicle can only have one active GPS device.")
+    _sql_constraints = [('server_traccar_uniq', 'unique(server_id, traccar_id)', "This Traccar device already exists.")]
+
+    def init(self):
+        super().init()
+        # a vehicle can only have one active GPS device
+        self.env.cr.execute("""CREATE UNIQUE INDEX IF NOT EXISTS fleet_gps_device_vehicle_uniq
+                               ON fleet_gps_device (vehicle_id) WHERE vehicle_id IS NOT NULL AND active IS TRUE""")
 
     # ----- import --------------------------------------------------------------------------------------------------
     @api.model
@@ -221,10 +226,8 @@ class GpsDevice(models.Model):
         if now - _last_notify.get(db, 0) < NOTIFY_EVERY:
             return
         _last_notify[db] = now
-        group = self.env.ref('elblasy_fleet_gps.group_gps_user', raise_if_not_found=False)
-        if group:
-            # users are subscribed to their groups by the websocket automatically, no client-side channel needed
-            self.env['bus.bus'].sudo()._sendone(group, BUS_TYPE, {})
+        # the message carries no data, so a plain channel the open maps subscribe to is enough
+        self.env['bus.bus'].sudo()._sendone(BUS_CHANNEL, BUS_TYPE, {})
 
     def _live_vals(self):
         self.ensure_one()
@@ -260,7 +263,7 @@ class GpsDevice(models.Model):
     @api.model
     def _icon_size(self):
         """Vehicle icon size in percent (setting), kept within a sane range."""
-        value = self.env['ir.config_parameter'].sudo().get_int('elblasy_fleet_gps.icon_size') or ICON_DEFAULT
+        value = int(self.env['ir.config_parameter'].sudo().get_param('elblasy_fleet_gps.icon_size') or 0) or ICON_DEFAULT
         return max(ICON_MIN, min(ICON_MAX, value))
 
     @api.model
@@ -280,14 +283,14 @@ class GpsDevice(models.Model):
             'devices': [d._live_vals() for d in devices],
             'config': {
                 'push_active': self.env['fleet.gps.server']._push_active(),
-                'speed_limit': params.get_int('elblasy_fleet_gps.speed_limit') or 80,
+                'speed_limit': int(params.get_param('elblasy_fleet_gps.speed_limit') or 0) or 80,
                 'icon_size': self._icon_size(),
                 'colors': {
-                    'moving': params.get_str('elblasy_fleet_gps.color_moving') or '#23e76a',
-                    'idle': params.get_str('elblasy_fleet_gps.color_idle') or '#f59e0b',
-                    'stopped': params.get_str('elblasy_fleet_gps.color_stopped') or '#27aef1',
-                    'over': params.get_str('elblasy_fleet_gps.color_over') or '#f20202',
-                    'offline': params.get_str('elblasy_fleet_gps.color_offline') or '#727374',
+                    'moving': (params.get_param('elblasy_fleet_gps.color_moving') or '') or '#23e76a',
+                    'idle': (params.get_param('elblasy_fleet_gps.color_idle') or '') or '#f59e0b',
+                    'stopped': (params.get_param('elblasy_fleet_gps.color_stopped') or '') or '#27aef1',
+                    'over': (params.get_param('elblasy_fleet_gps.color_over') or '') or '#f20202',
+                    'offline': (params.get_param('elblasy_fleet_gps.color_offline') or '') or '#727374',
                 },
             },
         }
@@ -315,7 +318,7 @@ class GpsDevice(models.Model):
                 remote['attributes'] = attrs
                 dev.server_id._put(f'devices/{dev.traccar_id}', remote)
             except Exception as e:  # noqa: BLE001 - UserError, or anything odd in the payload
-                dev.message_post(body=self.env._("Could not update Traccar: %s", str(e)))
+                dev.message_post(body=_("Could not update Traccar: %s", str(e)))
 
     # ----- subscription alerts -------------------------------------------------------------------------------------------
     @api.model
@@ -326,16 +329,16 @@ class GpsDevice(models.Model):
         todo = self.search([('subscription_end', '!=', False), ('subscription_end', '<=', limit)])
         for dev in todo.filtered(lambda d: d.expiry_notified != d.subscription_end):
             user = dev.vehicle_id.manager_id or self.env['res.users'].search(
-                [('group_ids', 'in', self.env.ref('elblasy_fleet_gps.group_gps_manager').ids), ('share', '=', False)], limit=1)
-            summary = (self.env._("GPS subscription expired: %s", dev.name) if dev.subscription_end < today
-                       else self.env._("GPS subscription ends on %(date)s: %(name)s", date=dev.subscription_end, name=dev.name))
+                [('groups_id', 'in', self.env.ref('elblasy_fleet_gps.group_gps_manager').ids), ('share', '=', False)], limit=1)
+            summary = (_("GPS subscription expired: %s", dev.name) if dev.subscription_end < today
+                       else _("GPS subscription ends on %(date)s: %(name)s", date=dev.subscription_end, name=dev.name))
             dev.activity_schedule('mail.mail_activity_data_todo', date_deadline=dev.subscription_end if dev.subscription_end >= today else today,
                                   summary=summary, user_id=(user or self.env.user).id)
             dev.expiry_notified = dev.subscription_end
 
     def action_playback(self, start=None, end=None):
         self.ensure_one()
-        return {'type': 'ir.actions.client', 'tag': 'elblasy_fleet_gps_playback', 'name': self.env._("Playback"),
+        return {'type': 'ir.actions.client', 'tag': 'elblasy_fleet_gps_playback', 'name': _("Playback"),
                 'params': {'device_id': self.id, 'start': start and fields.Datetime.to_string(start), 'end': end and fields.Datetime.to_string(end)}}
 
     # ----- vehicle card: what the live payload leaves out ------------------------------------------------------------------
@@ -345,8 +348,9 @@ class GpsDevice(models.Model):
         state, since when it has been at this place, why it went quiet, its latest events and a street address."""
         dev = self.browse(device_id).exists()
         if not dev:
-            raise UserError(self.env._("Unknown device."))
-        dev.check_access('read')
+            raise UserError(_("Unknown device."))
+        dev.check_access_rights('read')
+        dev.check_access_rule('read')
         cr = self.env.cr
         now = fields.Datetime.now()
         moving = dev.live_state in ('moving', 'over')

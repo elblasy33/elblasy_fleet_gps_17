@@ -1,3 +1,4 @@
+/** @odoo-module **/
 // Map styles. Every source works without an API key: OpenFreeMap (vector, OpenStreetMap data), Esri imagery, OpenTopoMap.
 import { _t } from "@web/core/l10n/translation";
 
@@ -6,10 +7,10 @@ const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services";
 const OFM_ATTR = '© <a href="https://openfreemap.org" target="_blank" rel="noreferrer">OpenFreeMap</a> © <a href="https://www.openmaptiles.org/" target="_blank" rel="noreferrer">OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>';
 
 export const STYLE_LIST = [
-    { key: "sat", label: _t("Satellite"), icon: "satellite", maxZoom: 19 },
-    { key: "light", label: _t("Light"), icon: "map", maxZoom: 20 },
-    { key: "dark", label: _t("Dark"), icon: "dark_mode", maxZoom: 20 },
-    { key: "topo", label: _t("Terrain"), icon: "terrain", maxZoom: 17 },
+    { key: "sat", label: _t("Satellite"), icon: "globe", maxZoom: 19 },
+    { key: "light", label: _t("Light"), icon: "map-o", maxZoom: 20 },
+    { key: "dark", label: _t("Dark"), icon: "moon-o", maxZoom: 20 },
+    { key: "topo", label: _t("Terrain"), icon: "picture-o", maxZoom: 17 },
 ];
 
 const raster = (tiles, attribution, maxzoom) => ({

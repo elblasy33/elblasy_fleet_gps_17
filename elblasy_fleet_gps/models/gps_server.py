@@ -1,10 +1,10 @@
 import secrets
 from datetime import timedelta
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, UserError
 
-from .traccar_client import TraccarClient, TraccarError
+from .traccar_client import TraccarClient, TraccarError, commit_progress
 
 MANAGER = 'elblasy_fleet_gps.group_gps_manager'
 POLL_BACKOFF = 30          # seconds added to the wait after a failed on-demand poll
@@ -46,13 +46,13 @@ class GpsServer(models.Model):
     geofence_ids = fields.One2many('fleet.gps.geofence', 'server_id')
     device_count = fields.Integer(compute='_compute_device_count')
 
-    _push_token_uniq = models.Constraint('unique(push_token)', "The push token must be unique.")
+    _sql_constraints = [('push_token_uniq', 'unique(push_token)', "The push token must be unique.")]
 
     @api.constrains('base_url')
     def _check_base_url(self):
         for rec in self:
             if not (rec.base_url or '').lower().startswith(('http://', 'https://')):
-                raise UserError(self.env._("The Traccar URL must start with http:// or https://."))
+                raise UserError(_("The Traccar URL must start with http:// or https://."))
 
     def _compute_device_count(self):
         data = dict(self.env['fleet.gps.device']._read_group(
@@ -62,7 +62,7 @@ class GpsServer(models.Model):
 
     @api.depends('push_token')
     def _compute_push_url(self):
-        base = self.env['ir.config_parameter'].sudo().get_str('web.base.url').rstrip('/')
+        base = (self.env['ir.config_parameter'].sudo().get_param('web.base.url') or '').rstrip('/')
         for rec in self:
             token = rec.sudo().push_token
             rec.push_url = f"{base}/fleet_gps/push/{token}" if token else False
@@ -80,26 +80,26 @@ class GpsServer(models.Model):
         try:
             return self._get_client().get(path, params)
         except TraccarError as e:
-            raise UserError(self.env._("Traccar: %s", str(e)))
+            raise UserError(_("Traccar: %s", str(e)))
 
     def _put(self, path, payload):
         try:
             return self._get_client().put(path, payload)
         except TraccarError as e:
-            raise UserError(self.env._("Traccar: %s", str(e)))
+            raise UserError(_("Traccar: %s", str(e)))
 
     # ----- actions -------------------------------------------------------------------------------------------------
     def action_test_connection(self):
         self.ensure_one()
         try:
             info = self._get_client().get('server')
-            result = self.env._("OK — Traccar %(v)s", v=info.get('version', '?'))
+            result = _("OK — Traccar %(v)s", v=info.get('version', '?'))
             ok = True
         except TraccarError as e:
             result, ok = str(e), False
         self.sudo().write({'last_test_date': fields.Datetime.now(), 'last_test_result': result})
         return {'type': 'ir.actions.client', 'tag': 'display_notification', 'params': {
-            'title': self.env._("Traccar"), 'message': result, 'type': 'success' if ok else 'danger', 'sticky': not ok}}
+            'title': _("Traccar"), 'message': result, 'type': 'success' if ok else 'danger', 'sticky': not ok}}
 
     def action_regenerate_push_token(self):
         for rec in self:
@@ -109,13 +109,13 @@ class GpsServer(models.Model):
         self.ensure_one()
         n_new, n_upd = self.env['fleet.gps.device']._import_from_server(self)
         return {'type': 'ir.actions.client', 'tag': 'display_notification', 'params': {
-            'title': self.env._("Devices imported"),
-            'message': self.env._("%(new)s new, %(upd)s updated.", new=n_new, upd=n_upd), 'type': 'success'}}
+            'title': _("Devices imported"),
+            'message': _("%(new)s new, %(upd)s updated.", new=n_new, upd=n_upd), 'type': 'success'}}
 
     def action_view_devices(self):
         self.ensure_one()
-        return {'type': 'ir.actions.act_window', 'name': self.env._("Devices"), 'res_model': 'fleet.gps.device',
-                'view_mode': 'list,form', 'domain': [('server_id', '=', self.id)],
+        return {'type': 'ir.actions.act_window', 'name': _("Devices"), 'res_model': 'fleet.gps.device',
+                'view_mode': 'tree,form', 'domain': [('server_id', '=', self.id)],
                 'context': {'default_server_id': self.id}}
 
     # ----- polling (safety net and "no push" mode) -----------------------------------------------------------------------
@@ -163,14 +163,14 @@ class GpsServer(models.Model):
         try:
             return self._get_client().post(path, payload)
         except TraccarError as e:
-            raise UserError(self.env._("Traccar: %s", str(e)))
+            raise UserError(_("Traccar: %s", str(e)))
 
     @api.model
     def poll_now(self):
         """Called by an open live map when no push reaches Odoo. Throttled per server and single-flight (a row lock),
         so ten open maps still cost one request to Traccar per interval."""
         if not self.env.user.has_group('elblasy_fleet_gps.group_gps_user'):
-            raise AccessError(self.env._("You are not allowed to use the GPS tracking."))
+            raise AccessError(_("You are not allowed to use the GPS tracking."))
         done = 0
         for server in self.sudo().search([('use_polling', '=', True)]):
             server.flush_recordset(['last_poll_date'])  # the raw query below reads the database
@@ -213,4 +213,4 @@ class GpsServer(models.Model):
                     server.sudo().last_gapfill_date = now
             except UserError:
                 continue  # a down Traccar must not stop the other servers
-            self.env['ir.cron']._commit_progress(1)
+            commit_progress(self.env)

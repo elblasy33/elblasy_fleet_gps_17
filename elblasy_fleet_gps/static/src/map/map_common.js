@@ -1,7 +1,8 @@
-import { user } from "@web/core/user";
+/** @odoo-module **/
+import { session } from "@web/session";
 
 const RTL_PLUGIN = "/elblasy_fleet_gps/static/lib/maplibre/mapbox-gl-rtl-text.js";
-export const mapLang = () => ((user.lang || document.documentElement.lang || "en").toLowerCase().startsWith("ar") ? "ar" : "en");
+export const mapLang = () => (((session.user_context && session.user_context.lang) || document.documentElement.lang || "en").toLowerCase().startsWith("ar") ? "ar" : "en");
 
 /** Without this plugin MapLibre draws Arabic letters one by one, unjoined and in the wrong order. Loaded once, only when needed. */
 export function enableArabicShaping() {

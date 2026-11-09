@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 import json
 from datetime import timedelta
 from unittest.mock import patch
@@ -8,7 +9,6 @@ from odoo.tests import HttpCase, tagged
 from .test_gps import Common, _pos
 
 GET = 'odoo.addons.elblasy_fleet_gps.models.traccar_client.TraccarClient.get'
-CRON = 'odoo.addons.base.models.ir_cron.IrCron._commit_progress'
 
 
 def _ev(eid, etype='ignitionOn', dev=1, when='2026-11-01T10:00:00.000+00:00', **extra):
@@ -72,7 +72,7 @@ class TestEvents(Common):
             if path == 'positions':
                 return []
             return [_ev(1, when='2026-11-07T09:00:00.000+00:00'), _ev(2, 'deviceMoving', when='2026-11-07T09:30:00.000+00:00')]
-        with patch(GET, side_effect=get), patch(CRON, return_value=1):
+        with patch(GET, side_effect=get), nullcontext():
             self.env['fleet.gps.server']._cron_poll()
         path, params = next(c for c in calls if c[0] == 'reports/events')
         self.assertEqual(params['deviceId'], [1])

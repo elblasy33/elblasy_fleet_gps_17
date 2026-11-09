@@ -1,7 +1,16 @@
 """Thin HTTP layer for the Traccar REST API (no ORM access, easy to mock)."""
+import threading
 from datetime import datetime, timezone
 
 import requests
+
+
+def commit_progress(env, done=1):
+    """Odoo 17 has no cron progress API: commit what was done so a long job keeps its work if it is killed
+    (never inside a test, which runs in one transaction). Returns True to keep going."""
+    if not getattr(threading.current_thread(), 'testing', False):
+        env.cr.commit()
+    return True
 
 
 class TraccarError(Exception):

@@ -50,7 +50,7 @@
     }
     .o_gps_search {
         position: relative; padding: 0.6rem 0.75rem 0.3rem;
-        .oi { position: absolute; inset-inline-start: 1.35rem; top: 55%; transform: translateY(-50%); color: var(--gps-muted); }
+        .fa { position: absolute; inset-inline-start: 1.35rem; top: 55%; transform: translateY(-50%); color: var(--gps-muted); }
         input {
             width: 100%; border: 0; border-radius: 0.5rem; background: var(--gps-input); color: var(--gps-text);
             padding: 0.5rem 0.75rem; padding-inline-start: 2.2rem; outline: none;
@@ -83,7 +83,7 @@
     .o_gps_speed { font-weight: 700; small { font-weight: 400; color: var(--gps-muted); } }
     .o_gps_empty {
         display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 2.5rem 1.5rem; color: var(--gps-muted); text-align: center;
-        .oi { font-size: 2.5rem; opacity: 0.5; }
+        .fa { font-size: 2.5rem; opacity: 0.5; }
     }
 
     // ------------------------------------------------------------------ map stage
@@ -92,7 +92,7 @@
     .o_gps_nogl {
         position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center;
         gap: 0.5rem; padding: 2rem; text-align: center; background: var(--gps-head); color: var(--gps-muted);
-        .oi { font-size: 2.5rem; }
+        .fa { font-size: 2.5rem; }
     }
     .o_gps_tools {
         position: absolute; inset-block-start: 0.75rem; inset-inline-end: 0.75rem; z-index: 2;
@@ -133,12 +133,12 @@
     .o_gps_stats {
         display: grid; grid-template-columns: repeat(auto-fit, minmax(4.2rem, 1fr)); gap: 0.4rem;
         > div { display: flex; flex-direction: column; align-items: center; background: var(--gps-input); border-radius: 0.5rem; padding: 0.4rem 0.2rem; line-height: 1.25;
-            .oi { color: var(--gps-muted); font-size: 1.1rem; } b { font-size: 0.95rem; } small { color: var(--gps-muted); font-size: 0.7rem; } }
+            .fa { color: var(--gps-muted); font-size: 1.1rem; } b { font-size: 0.95rem; } small { color: var(--gps-muted); font-size: 0.7rem; } }
     }
-    .o_gps_addr { display: flex; gap: 0.4rem; font-size: 0.88rem; .oi { color: var(--gps-muted); flex: none; } }
+    .o_gps_addr { display: flex; gap: 0.4rem; font-size: 0.88rem; .fa { color: var(--gps-muted); flex: none; } }
     .o_gps_since { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.85rem;
-        span { display: flex; align-items: center; gap: 0.4rem; .oi { color: var(--gps-muted); } }
-        .o_gps_silence { color: #d97706; .oi { color: #d97706; } } }
+        span { display: flex; align-items: center; gap: 0.4rem; .fa { color: var(--gps-muted); } }
+        .o_gps_silence { color: #d97706; .fa { color: #d97706; } } }
     .o_gps_more { border: 0; background: transparent; color: #2563eb; padding: 0; text-align: start; font-size: 0.85rem; }
     .o_gps_details { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; max-height: 14rem; overflow-y: auto;
         > div { display: flex; align-items: center; gap: 0.5rem; > span { color: var(--gps-muted); min-width: 7rem; } > b, > a { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }

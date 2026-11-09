@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 from odoo import api, fields, models
 
 from . import analytics
+from .traccar_client import commit_progress
 
 _logger = logging.getLogger(__name__)
 DEFAULT_TZ = 'Africa/Cairo'
@@ -26,20 +27,20 @@ class GpsDaily(models.Model):
     driver_id = fields.Many2one('res.partner', string="Driver", index=True)
     company_id = fields.Many2one(related='device_id.company_id', store=True, index=True)
     date = fields.Date(required=True, index=True)
-    distance_km = fields.Float("Distance (km)", digits=(12, 2), aggregator='sum')
-    moving_hours = fields.Float("Driving (h)", digits=(8, 2), aggregator='sum')
-    idle_hours = fields.Float("Idling (h)", digits=(8, 2), aggregator='sum')
-    stopped_hours = fields.Float("Stopped (h)", digits=(8, 2), aggregator='sum')
-    max_speed = fields.Float("Max Speed (km/h)", digits=(6, 1), aggregator='max')
-    avg_speed = fields.Float("Avg Speed (km/h)", digits=(6, 1), aggregator='avg')
-    trip_count = fields.Integer("Trips", aggregator='sum')
-    over_count = fields.Integer("Overspeed Events", aggregator='sum')
-    over_hours = fields.Float("Overspeed (h)", digits=(8, 2), aggregator='sum')
-    harsh_brake = fields.Integer("Harsh Braking", aggregator='sum')
-    harsh_accel = fields.Integer("Harsh Acceleration", aggregator='sum')
-    harsh_total = fields.Integer("Harsh Events", compute='_compute_harsh', store=True, aggregator='sum')
-    score = fields.Float("Driving Score", digits=(5, 0), aggregator='avg')
-    points = fields.Integer("GPS Points", aggregator='sum')
+    distance_km = fields.Float("Distance (km)", digits=(12, 2), group_operator='sum')
+    moving_hours = fields.Float("Driving (h)", digits=(8, 2), group_operator='sum')
+    idle_hours = fields.Float("Idling (h)", digits=(8, 2), group_operator='sum')
+    stopped_hours = fields.Float("Stopped (h)", digits=(8, 2), group_operator='sum')
+    max_speed = fields.Float("Max Speed (km/h)", digits=(6, 1), group_operator='max')
+    avg_speed = fields.Float("Avg Speed (km/h)", digits=(6, 1), group_operator='avg')
+    trip_count = fields.Integer("Trips", group_operator='sum')
+    over_count = fields.Integer("Overspeed Events", group_operator='sum')
+    over_hours = fields.Float("Overspeed (h)", digits=(8, 2), group_operator='sum')
+    harsh_brake = fields.Integer("Harsh Braking", group_operator='sum')
+    harsh_accel = fields.Integer("Harsh Acceleration", group_operator='sum')
+    harsh_total = fields.Integer("Harsh Events", compute='_compute_harsh', store=True, group_operator='sum')
+    score = fields.Float("Driving Score", digits=(5, 0), group_operator='avg')
+    points = fields.Integer("GPS Points", group_operator='sum')
     speed_limit = fields.Integer("Limit Used (km/h)")
     hour_dist = fields.Json("Distance per hour (m)")
     hour_moving = fields.Json("Moving per hour (ms)")
@@ -48,7 +49,7 @@ class GpsDaily(models.Model):
     trip_ids = fields.One2many('fleet.gps.trip', 'daily_id')
     stop_ids = fields.One2many('fleet.gps.stop', 'daily_id')
 
-    _device_date_uniq = models.Constraint('unique(device_id, date)', "One summary per device and day.")
+    _sql_constraints = [('device_date_uniq', 'unique(device_id, date)', "One summary per device and day.")]
 
     @api.depends('harsh_brake', 'harsh_accel')
     def _compute_harsh(self):
@@ -58,7 +59,7 @@ class GpsDaily(models.Model):
     # ----- computation -----------------------------------------------------------------------------------------------
     @api.model
     def _tz(self):
-        name = self.env['ir.config_parameter'].sudo().get_str('elblasy_fleet_gps.timezone') or DEFAULT_TZ
+        name = (self.env['ir.config_parameter'].sudo().get_param('elblasy_fleet_gps.timezone') or '') or DEFAULT_TZ
         try:
             return ZoneInfo(name)
         except Exception:  # noqa: BLE001 - unknown zone name in settings
@@ -86,7 +87,7 @@ class GpsDaily(models.Model):
         rows = self.env.cr.fetchall()
         if not rows and not existing:
             return existing
-        limit = self.env['ir.config_parameter'].sudo().get_int('elblasy_fleet_gps.speed_limit') or 80
+        limit = int(self.env['ir.config_parameter'].sudo().get_param('elblasy_fleet_gps.speed_limit') or 0) or 80
         hours = {}
 
         def hour_of(ms):
@@ -141,7 +142,7 @@ class GpsDaily(models.Model):
         for device in devices:
             for day in (today - timedelta(days=1), today):
                 self._compute_for(device, day)
-            self.env['ir.cron']._commit_progress(1)
+            commit_progress(self.env)
 
 
 class GpsTrip(models.Model):
@@ -157,11 +158,11 @@ class GpsTrip(models.Model):
     date = fields.Date(related='daily_id.date', store=True, index=True)
     start_time = fields.Datetime(required=True)
     end_time = fields.Datetime(required=True)
-    duration_minutes = fields.Float("Duration (min)", compute='_compute_duration', store=True, digits=(8, 1), aggregator='sum')
-    moving_minutes = fields.Float("Moving (min)", digits=(8, 1), aggregator='sum')
-    distance_km = fields.Float("Distance (km)", digits=(10, 2), aggregator='sum')
-    max_speed = fields.Float("Max Speed (km/h)", digits=(6, 1), aggregator='max')
-    avg_speed = fields.Float("Avg Speed (km/h)", digits=(6, 1), aggregator='avg')
+    duration_minutes = fields.Float("Duration (min)", compute='_compute_duration', store=True, digits=(8, 1), group_operator='sum')
+    moving_minutes = fields.Float("Moving (min)", digits=(8, 1), group_operator='sum')
+    distance_km = fields.Float("Distance (km)", digits=(10, 2), group_operator='sum')
+    max_speed = fields.Float("Max Speed (km/h)", digits=(6, 1), group_operator='max')
+    avg_speed = fields.Float("Avg Speed (km/h)", digits=(6, 1), group_operator='avg')
     start_lat = fields.Float(digits=(10, 7))
     start_lon = fields.Float(digits=(10, 7))
     end_lat = fields.Float(digits=(10, 7))
@@ -190,7 +191,7 @@ class GpsStop(models.Model):
     date = fields.Date(related='daily_id.date', store=True, index=True)
     start_time = fields.Datetime(required=True)
     end_time = fields.Datetime(required=True)
-    duration_minutes = fields.Float("Duration (min)", compute='_compute_duration', store=True, digits=(8, 1), aggregator='sum')
+    duration_minutes = fields.Float("Duration (min)", compute='_compute_duration', store=True, digits=(8, 1), group_operator='sum')
     latitude = fields.Float(digits=(10, 7))
     longitude = fields.Float(digits=(10, 7))
     ignition = fields.Boolean("Engine On", help="The engine was running while standing (idling).")

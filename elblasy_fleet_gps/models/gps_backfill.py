@@ -1,8 +1,9 @@
 import logging
 from datetime import timedelta
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+from .traccar_client import commit_progress
 
 _logger = logging.getLogger(__name__)
 MAX_DAYS = 92
@@ -51,7 +52,7 @@ class GpsBackfill(models.Model):
         for rec in self:
             days = rec._days()
             if days < 1 or days > MAX_DAYS:
-                raise UserError(self.env._("Choose a range of 1 to %s days.", MAX_DAYS))
+                raise UserError(_("Choose a range of 1 to %s days.", MAX_DAYS))
             rec.write({'state': 'running', 'cursor': 0, 'total': days * len(rec._devices()), 'error': False, 'positions': 0})
 
     def action_run_now(self):
@@ -64,7 +65,7 @@ class GpsBackfill(models.Model):
         for rec in self.filtered(lambda r: r.state == 'running'):
             devices, days = rec._devices(), rec._days()
             try:
-                for _ in range(steps):
+                for __ in range(steps):
                     if rec.cursor >= rec.total:
                         break
                     device, day = devices[rec.cursor // days], rec.date_from + timedelta(days=rec.cursor % days)
@@ -79,7 +80,7 @@ class GpsBackfill(models.Model):
                     rec.state = 'done'
             except UserError as e:
                 rec.write({'state': 'failed', 'error': str(e)})
-            self.env['ir.cron']._commit_progress(1)
+            commit_progress(self.env)
 
     @api.model
     def _cron_step(self):

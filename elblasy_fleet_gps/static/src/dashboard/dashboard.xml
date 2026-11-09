@@ -1,39 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="elblasy_fleet_gps.Dashboard">
-        <div class="o_gps_dash" t-ref="this.rootRef">
+        <div class="o_gps_dash" t-ref="rootRef">
             <div class="o_gps_dash_head">
                 <h1 class="o_gps_dash_title">Fleet dashboard</h1>
                 <div class="o_gps_dash_filters">
                     <div class="o_gps_seg">
-                        <button t-foreach="this.ranges" t-as="r" t-key="r.key" t-att-class="{ active: this.state.range === r.key }" t-on-click="() => this.setRange(r.key)" t-out="r.label"/>
+                        <button t-foreach="ranges" t-as="r" t-key="r.key" t-att-class="{ active: state.range === r.key }" t-on-click="() => this.setRange(r.key)" t-out="r.label"/>
                     </div>
-                    <select class="o_gps_select" t-on-change="this.onDevice">
+                    <select class="o_gps_select" t-on-change="onDevice">
                         <option value="0">All vehicles</option>
-                        <option t-foreach="this.state.data ? this.state.data.devices : []" t-as="dv" t-key="dv.id" t-att-value="dv.id" t-att-selected="dv.id === this.state.deviceId" t-out="dv.name"/>
+                        <option t-foreach="state.data ? state.data.devices : []" t-as="dv" t-key="dv.id" t-att-value="dv.id" t-att-selected="dv.id === state.deviceId" t-out="dv.name"/>
                     </select>
-                    <button class="o_gps_icon_btn" title="Refresh" t-on-click="this.reload"><i class="oi" data-icon="refresh"/></button>
+                    <button class="o_gps_icon_btn" title="Refresh" t-on-click="reload"><i class="fa fa-refresh"/></button>
                 </div>
             </div>
-            <div t-if="this.state.error" class="o_gps_dash_error" t-out="this.state.error"/>
-            <div t-if="this.state.data and !this.state.data.has_data and !this.state.loading" class="o_gps_dash_empty">
-                <i class="oi" data-icon="show_chart"/>
+            <div t-if="state.error" class="o_gps_dash_error" t-out="state.error"/>
+            <div t-if="state.data and !state.data.has_data and !state.loading" class="o_gps_dash_empty">
+                <i class="fa fa-line-chart"/>
                 <span>No trips in this period. Import history from Configuration → History Import, or choose another range.</span>
             </div>
 
             <div class="o_gps_kpis">
-                <div t-foreach="this.kpis" t-as="k" t-key="k.key" class="o_gps_kpi" t-att-class="'o_gps_kpi_' + k.key">
+                <div t-foreach="kpis" t-as="k" t-key="k.key" class="o_gps_kpi" t-att-class="'o_gps_kpi_' + k.key">
                     <span class="o_gps_kpi_label" t-out="k.label"/>
                     <span class="o_gps_kpi_value"><t t-out="k.value"/><small t-if="k.unit" t-out="k.unit"/></span>
                     <span class="o_gps_kpi_sub" t-if="k.sub" t-out="k.sub"/>
                 </div>
             </div>
 
-            <section t-if="this.state.data and this.state.data.insights.length" class="o_gps_card_box o_gps_insights">
+            <section t-if="state.data and state.data.insights.length" class="o_gps_card_box o_gps_insights">
                 <h2>Insights</h2>
                 <ul>
-                    <li t-foreach="this.state.data.insights" t-as="i" t-key="i_index" t-att-class="'o_gps_ins_' + i.level">
-                        <i class="oi" t-att-data-icon="i.level === 'warn' ? 'warning' : i.level === 'good' ? 'check' : 'show_chart'"/>
+                    <li t-foreach="state.data.insights" t-as="i" t-key="i_index" t-att-class="'o_gps_ins_' + i.level">
+                        <i t-attf-class="fa fa-{{i.level === 'warn' ? 'exclamation-triangle' : i.level === 'good' ? 'check' : 'line-chart'}}"/>
                         <span t-out="i.text"/>
                     </li>
                 </ul>
@@ -42,57 +42,57 @@
             <div class="o_gps_cards">
                 <section class="o_gps_card_box o_gps_wide">
                     <h2>Distance per day (km)</h2>
-                    <div class="o_gps_chart"><canvas t-ref="this.dailyRef"/></div>
+                    <div class="o_gps_chart"><canvas t-ref="dailyRef"/></div>
                 </section>
                 <section class="o_gps_card_box">
                     <h2>Vehicles now</h2>
-                    <div class="o_gps_chart"><canvas t-ref="this.statusRef"/></div>
+                    <div class="o_gps_chart"><canvas t-ref="statusRef"/></div>
                 </section>
                 <section class="o_gps_card_box o_gps_wide">
                     <h2>Distance by vehicle (km)</h2>
-                    <div class="o_gps_chart o_gps_tall"><canvas t-ref="this.vehicleRef"/></div>
+                    <div class="o_gps_chart o_gps_tall"><canvas t-ref="vehicleRef"/></div>
                 </section>
                 <section class="o_gps_card_box">
                     <h2>Time per speed band (h)</h2>
-                    <div class="o_gps_chart"><canvas t-ref="this.speedRef"/></div>
+                    <div class="o_gps_chart"><canvas t-ref="speedRef"/></div>
                 </section>
                 <section class="o_gps_card_box o_gps_wide">
                     <h2>Utilization (h)</h2>
-                    <div class="o_gps_chart o_gps_tall"><canvas t-ref="this.utilRef"/></div>
+                    <div class="o_gps_chart o_gps_tall"><canvas t-ref="utilRef"/></div>
                 </section>
                 <section class="o_gps_card_box">
                     <h2>Driving by hour of day (h)</h2>
-                    <div class="o_gps_chart"><canvas t-ref="this.hourlyRef"/></div>
+                    <div class="o_gps_chart"><canvas t-ref="hourlyRef"/></div>
                 </section>
                 <section class="o_gps_card_box o_gps_wide">
                     <h2>Lowest driving scores</h2>
-                    <div class="o_gps_chart o_gps_tall"><canvas t-ref="this.scoreRef"/></div>
+                    <div class="o_gps_chart o_gps_tall"><canvas t-ref="scoreRef"/></div>
                 </section>
                 <section class="o_gps_card_box">
                     <h2>Events by type</h2>
-                    <div class="o_gps_chart"><canvas t-ref="this.eventsRef"/></div>
+                    <div class="o_gps_chart"><canvas t-ref="eventsRef"/></div>
                 </section>
                 <section class="o_gps_card_box o_gps_full">
-                    <h2><t t-if="this.state.data and this.state.data.heatmap.mode === 'day'">Driving by day and hour (h)</t><t t-else="">Driving by weekday and hour (h)</t></h2>
-                    <div class="o_gps_heat" t-if="this.state.data">
+                    <h2><t t-if="state.data and state.data.heatmap.mode === 'day'">Driving by day and hour (h)</t><t t-else="">Driving by weekday and hour (h)</t></h2>
+                    <div class="o_gps_heat" t-if="state.data">
                         <div class="o_gps_heat_row o_gps_heat_head">
                             <span class="o_gps_heat_label"/>
-                            <span t-foreach="this.hourLabels" t-as="h" t-key="h_index" class="o_gps_heat_cell" t-out="h"/>
+                            <span t-foreach="hourLabels" t-as="h" t-key="h_index" class="o_gps_heat_cell" t-out="h"/>
                         </div>
-                        <div t-foreach="this.state.data.heatmap.rows" t-as="row" t-key="row.label" class="o_gps_heat_row">
-                            <span class="o_gps_heat_label" t-out="this.heatLabel(row.label)"/>
+                        <div t-foreach="state.data.heatmap.rows" t-as="row" t-key="row.label" class="o_gps_heat_row">
+                            <span class="o_gps_heat_label" t-out="heatLabel(row.label)"/>
                             <span t-foreach="row.values" t-as="v" t-key="v_index" class="o_gps_heat_cell"
-                                  t-att-style="this.heatStyle(v)" t-att-title="this.heatTitle(row.label, v_index, v)"/>
+                                  t-att-style="heatStyle(v)" t-att-title="heatTitle(row.label, v_index, v)"/>
                         </div>
                     </div>
                 </section>
                 <section class="o_gps_card_box">
                     <h2>Low battery</h2>
                     <div class="o_gps_list">
-                        <button t-foreach="this.state.data ? this.state.data.low_battery : []" t-as="b" t-key="b.id" t-on-click="() => this.openVehicle(b.id)">
+                        <button t-foreach="state.data ? state.data.low_battery : []" t-as="b" t-key="b.id" t-on-click="() => this.openVehicle(b.id)">
                             <span t-out="b.name"/><b><t t-out="Math.round(b.battery)"/>%</b>
                         </button>
-                        <p t-if="this.state.data and !this.state.data.low_battery.length" class="o_gps_none">All batteries are fine.</p>
+                        <p t-if="state.data and !state.data.low_battery.length" class="o_gps_none">All batteries are fine.</p>
                     </div>
                 </section>
                 <section class="o_gps_card_box o_gps_wide">
@@ -100,11 +100,11 @@
                     <table class="o_gps_table">
                         <thead><tr><th>Vehicle</th><th>Start</th><th>Distance</th><th>Max</th></tr></thead>
                         <tbody>
-                            <tr t-foreach="this.state.data ? this.state.data.trips : []" t-as="t" t-key="t_index">
+                            <tr t-foreach="state.data ? state.data.trips : []" t-as="t" t-key="t_index">
                                 <td t-out="t.device"/>
                                 <td t-out="t.start"/>
-                                <td><t t-out="this.num(t.km, 1)"/> <small>km</small></td>
-                                <td><t t-out="this.num(t.max)"/> <small>km/h</small></td>
+                                <td><t t-out="num(t.km, 1)"/> <small>km</small></td>
+                                <td><t t-out="num(t.max)"/> <small>km/h</small></td>
                             </tr>
                         </tbody>
                     </table>

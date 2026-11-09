@@ -1,17 +1,18 @@
+/** @odoo-module **/
 // Vehicle state, colours and map markers (ported from the Tracar dashboard: vstate / vehicle / MapView).
 import { _t } from "@web/core/l10n/translation";
 
 const FRESH_MS = 5 * 60000; // a repeated old fix keeps the speed it had back then: that is not "moving now"
 const MOVING_KMH = 2;
 
-/** Odoo 20 ships Material Symbols only (names listed in web/icons.py), not Font Awesome. */
+/** Font Awesome 4 icon names (Odoo 17). */
 export const CATEGORY_ICON = {
-    default: "near_me", car: "directions_car", pickup: "directions_car", van: "directions_bus",
-    truck: "local_shipping", container: "local_shipping", bus: "directions_bus", trolleybus: "directions_bus",
-    motorcycle: "two_wheeler", scooter: "two_wheeler", bicycle: "two_wheeler",
-    tractor: "build", crane: "build", offroad: "build", camper: "directions_bus",
-    boat: "directions_boat", ship: "directions_boat", plane: "flight", helicopter: "flight",
-    train: "train", tram: "train", person: "person", animal: "pets",
+    default: "location-arrow", car: "car", pickup: "car", van: "bus",
+    truck: "truck", container: "truck", bus: "bus", trolleybus: "bus",
+    motorcycle: "motorcycle", scooter: "motorcycle", bicycle: "motorcycle",
+    tractor: "wrench", crane: "wrench", offroad: "wrench", camper: "bus",
+    boat: "ship", ship: "ship", plane: "plane", helicopter: "plane",
+    train: "train", tram: "train", person: "user", animal: "paw",
 };
 
 export const STATES = {
@@ -98,7 +99,7 @@ export function markerHtml(d, { vs, color }, { selected, label, showLabel }) {
     const icon = CATEGORY_ICON[d.category] || CATEGORY_ICON.default;
     return `<div class="${cls}" style="--c:${color}">
       <div class="o_gps_heading" style="transform:rotate(${d.course || 0}deg)"><i></i></div>
-      <div class="o_gps_badge"><i class="oi" data-icon="${icon}"></i></div>${lbl}</div>`;
+      <div class="o_gps_badge"><i class="fa fa-${icon}"></i></div>${lbl}</div>`;
 }
 
 // How long a marker glides to a new fix: about the last update interval, so it arrives when the next fix does.

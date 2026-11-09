@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -47,19 +48,19 @@ class TestLiveData(Common):
         self.assertFalse(self.Dev.get_live_data()['devices'])
 
     def test_settings_feed_config(self):
-        self.env['ir.config_parameter'].set_int('elblasy_fleet_gps.speed_limit', 100)
-        self.env['ir.config_parameter'].set_str('elblasy_fleet_gps.color_over', '#000000')
+        self.env['ir.config_parameter'].set_param('elblasy_fleet_gps.speed_limit', '100')
+        self.env['ir.config_parameter'].set_param('elblasy_fleet_gps.color_over', '#000000')
         cfg = self.Dev.get_live_data()['config']
         self.assertEqual((cfg['speed_limit'], cfg['colors']['over']), (100, '#000000'))
 
     def test_icon_size_defaults_to_140_and_is_clamped(self):
         params = self.env['ir.config_parameter']
         self.assertEqual(self.Dev.get_live_data()['config']['icon_size'], 140)   # the Tracar dashboard drew icons at 1.4x
-        params.set_int('elblasy_fleet_gps.icon_size', 180)
+        params.set_param('elblasy_fleet_gps.icon_size', '180')
         self.assertEqual(self.Dev.get_live_data()['config']['icon_size'], 180)
-        params.set_int('elblasy_fleet_gps.icon_size', 9999)
+        params.set_param('elblasy_fleet_gps.icon_size', '9999')
         self.assertEqual(self.Dev._icon_size(), 250)
-        params.set_int('elblasy_fleet_gps.icon_size', 5)
+        params.set_param('elblasy_fleet_gps.icon_size', '5')
         self.assertEqual(self.Dev._icon_size(), 50)
 
     def test_outsider_has_no_access(self):
@@ -76,7 +77,7 @@ class TestLiveData(Common):
             self.Dev._notify_live()
         self.assertEqual(send.call_count, 1)
         target, kind, payload = send.call_args.args
-        self.assertEqual((target, kind, payload), (self.env.ref('elblasy_fleet_gps.group_gps_user'), gps_device.BUS_TYPE, {}))
+        self.assertEqual((target, kind, payload), (gps_device.BUS_CHANNEL, gps_device.BUS_TYPE, {}))
 
 
 @tagged('post_install', '-at_install')
@@ -101,7 +102,6 @@ class TestMapUI(HttpCase):
 
 PUT = 'odoo.addons.elblasy_fleet_gps.models.traccar_client.TraccarClient.put'
 GET = 'odoo.addons.elblasy_fleet_gps.models.traccar_client.TraccarClient.get'
-CRON = 'odoo.addons.base.models.ir_cron.IrCron._commit_progress'
 
 
 @tagged('post_install', '-at_install')
@@ -220,7 +220,7 @@ class TestNoPushMode(Common):
         latest = [_pos(20, fix='2026-11-07T10:05:00.000+00:00', srv='2026-11-07T10:05:01.000+00:00')]
         history = [_pos(i, fix=f'2026-11-07T10:0{i - 10}:00.000+00:00', srv=f'2026-11-07T10:0{i - 10}:01.000+00:00') for i in (12, 14, 16, 18)]
         get, calls = self._fake(latest, history)
-        with patch(GET, side_effect=get), patch('odoo.addons.base.models.ir_cron.IrCron._commit_progress', return_value=1), \
+        with patch(GET, side_effect=get), nullcontext(), \
                 patch('odoo.addons.elblasy_fleet_gps.models.gps_server.fields.Datetime.now', return_value=fields.Datetime.to_datetime('2026-11-07 10:06:00')):
             self.env['fleet.gps.server']._cron_poll()
         self.assertEqual(Pos.search_count([('device_id', '=', dev.id)]), 6)  # 10, 12, 14, 16, 18 and the latest 20
@@ -247,7 +247,7 @@ class TestViews(TransactionCase):
         for view in views:
             xml_id = view.get_external_id()[view.id]
             if view.arch_fs:
-                arch = get_view_arch_from_file(file_path(view.arch_fs, check_exists=False), xml_id)
+                arch = get_view_arch_from_file(file_path(view.arch_fs), xml_id)
                 self.assertTrue(arch, f"{xml_id}: the file arch could not be read")
             self.env[view.model].get_view(view.id, view.type)
 
@@ -304,7 +304,7 @@ class TestFreshness(Common):
         self._dev(status='online')
         calls = []
         Server = self.env['fleet.gps.server']
-        with patch(GET, side_effect=self._fake(calls)), patch(CRON, return_value=1):
+        with patch(GET, side_effect=self._fake(calls)), nullcontext():
             Server._cron_poll()
             first = len(calls)
             self.assertTrue(self.server.last_gapfill_date)
@@ -317,7 +317,7 @@ class TestFreshness(Common):
     def test_cron_leaves_a_pushing_server_alone_until_the_safety_net_is_due(self):
         self.server.write({'last_push_date': fields.Datetime.now(), 'last_poll_date': fields.Datetime.now() - timedelta(minutes=2)})
         calls = []
-        with patch(GET, side_effect=self._fake(calls)), patch(CRON, return_value=1):
+        with patch(GET, side_effect=self._fake(calls)), nullcontext():
             self.env['fleet.gps.server']._cron_poll()
             self.assertEqual(calls, [])  # push is healthy and the last poll was 2 min ago
             self.server.last_poll_date = fields.Datetime.now() - timedelta(minutes=6)

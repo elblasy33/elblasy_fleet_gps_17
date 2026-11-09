@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from datetime import date, timedelta
 from unittest.mock import patch
 
@@ -8,7 +9,6 @@ from odoo.addons.elblasy_fleet_gps.models import analytics
 from .test_gps import Common
 
 GET = 'odoo.addons.elblasy_fleet_gps.models.traccar_client.TraccarClient.get'
-CRON = 'odoo.addons.base.models.ir_cron.IrCron._commit_progress'
 M_PER_DEG = 111195.0
 
 
@@ -144,7 +144,7 @@ class TestDaily(Common):
         self.env['fleet.gps.position']._ingest(self.server, [_p(1, 1, '2026-11-01T01:00:00.000+00:00', 30.0, 50),
                                                               _p(2, 1, '2026-11-01T01:00:10.000+00:00', 30.001, 50)], {})
         self.assertEqual(self.Daily._compute_for(self.dev, date(2026, 11, 1)).points, 2)   # 03:00 Cairo
-        self.env['ir.config_parameter'].set_str('elblasy_fleet_gps.timezone', 'America/New_York')
+        self.env['ir.config_parameter'].set_param('elblasy_fleet_gps.timezone', 'America/New_York')
         self.assertFalse(self.Daily._compute_for(self.dev, date(2026, 11, 1), force=True).points)  # 21:00 on Oct 31 in New York
 
     def test_cron_computes_today_and_yesterday(self):
@@ -152,7 +152,7 @@ class TestDaily(Common):
         iso = lambda dt: dt.strftime('%Y-%m-%dT%H:%M:%S.000+00:00')  # noqa: E731
         self.env['fleet.gps.position']._ingest(self.server, [
             _p(1, 1, iso(now - timedelta(minutes=2)), 30.0, 50), _p(2, 1, iso(now - timedelta(minutes=1)), 30.002, 50)], {})
-        with patch(CRON, return_value=1):
+        with nullcontext():
             self.Daily._cron_compute()
         self.assertTrue(self.Daily.search([('device_id', '=', self.dev.id)]))
 
@@ -176,7 +176,7 @@ class TestBackfill(Common):
     def test_job_runs_in_batches_and_builds_summaries(self):
         self.job.action_start()
         self.assertEqual((self.job.state, self.job.total), ('running', 2))
-        with patch(GET, side_effect=self._route), patch(CRON, return_value=1):
+        with patch(GET, side_effect=self._route), nullcontext():
             self.job._cron_step()
         self.assertEqual((self.job.state, self.job.cursor, self.job.positions), ('done', 2, 5))
         self.assertEqual(self.job.progress, 100)
@@ -187,7 +187,7 @@ class TestBackfill(Common):
     def test_batch_size_is_limited_and_resumes(self):
         job = self.env['fleet.gps.backfill'].create({'server_id': self.server.id, 'date_from': date(2026, 11, 1), 'date_to': date(2026, 11, 30)})
         job.action_start()
-        with patch(GET, return_value=[]), patch(CRON, return_value=1):
+        with patch(GET, return_value=[]), nullcontext():
             job._step(steps=5)
             self.assertEqual((job.state, job.cursor), ('running', 5))
             job._step(steps=100)
@@ -196,7 +196,7 @@ class TestBackfill(Common):
     def test_traccar_failure_marks_job_failed_with_message(self):
         from odoo.addons.elblasy_fleet_gps.models.traccar_client import TraccarError
         self.job.action_start()
-        with patch(GET, side_effect=TraccarError('network', 'The Traccar server could not be reached.')), patch(CRON, return_value=1):
+        with patch(GET, side_effect=TraccarError('network', 'The Traccar server could not be reached.')), nullcontext():
             self.job._step()
         self.assertEqual(self.job.state, 'failed')
         self.assertIn('could not be reached', self.job.error)
@@ -217,8 +217,8 @@ class TestReportsShowDevices(Common):
         self.env['fleet.gps.position']._ingest(self.server, [
             _p(1, 1, '2026-11-01T08:00:00.000+00:00', 30.0, 50), _p(2, 1, '2026-11-01T08:00:10.000+00:00', 30.001, 50)], {})
         self.env['fleet.gps.daily']._compute_for(dev, date(2026, 11, 1))
-        rows = self.env['fleet.gps.daily'].formatted_read_group([], ['device_id'], ['distance_km:sum'])
-        self.assertEqual([(r['device_id'][1], round(r['distance_km:sum'], 1)) for r in rows], [('1969', 0.1)])
+        rows = self.env['fleet.gps.daily']._read_group([], ['device_id'], ['distance_km:sum'])
+        self.assertEqual([(dev.display_name, round(km, 1)) for dev, km in rows], [('1969', 0.1)])
         for xml_id in ('gps_daily_view_pivot', 'gps_daily_view_list', 'gps_trip_view_list', 'gps_stop_view_list'):
             arch = self.env.ref(f'elblasy_fleet_gps.{xml_id}').arch
             self.assertIn('name="device_id"', arch, xml_id)
@@ -334,8 +334,8 @@ class TestReportsExtras(Common):
 
     def test_waiting_report_groups_stops_by_place(self):
         self._stops()
-        rows = self.env['fleet.gps.stop'].formatted_read_group([], ['place'], ['duration_minutes:sum', '__count'])
-        self.assertEqual(sorted(r['place'] for r in rows), ['30.500, 31.000', 'Yard'])
+        rows = self.env['fleet.gps.stop']._read_group([], ['place'], ['duration_minutes:sum', '__count'])
+        self.assertEqual(sorted(r[0] for r in rows), ['30.500, 31.000', 'Yard'])
 
     def test_every_report_view_and_action_loads(self):
         for xml_id in ('gps_behavior_action', 'gps_waiting_action', 'gps_compare_action'):

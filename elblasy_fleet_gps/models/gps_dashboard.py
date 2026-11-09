@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 MAX_DAYS = 93
@@ -16,7 +16,7 @@ class GpsDashboard(models.AbstractModel):
     @api.model
     def _state_colors(self):
         params = self.env['ir.config_parameter'].sudo()
-        return {k: params.get_str(f'elblasy_fleet_gps.color_{k}') or default for k, default in (
+        return {k: (params.get_param(f'elblasy_fleet_gps.color_{k}') or '') or default for k, default in (
             ('moving', '#23e76a'), ('idle', '#f59e0b'), ('stopped', '#27aef1'), ('over', '#f20202'), ('offline', '#727374'))}
 
     @api.model
@@ -25,7 +25,7 @@ class GpsDashboard(models.AbstractModel):
         daily summaries (small: one row per device and day) and the live state of the devices."""
         d_from, d_to = fields.Date.to_date(date_from), fields.Date.to_date(date_to)
         if not d_from or not d_to or d_to < d_from or (d_to - d_from).days > MAX_DAYS:
-            raise UserError(self.env._("Choose a range of at most %s days.", MAX_DAYS))
+            raise UserError(_("Choose a range of at most %s days.", MAX_DAYS))
         Device = self.env['fleet.gps.device']
         all_devices = Device.search([('disabled', '=', False)], order='name')
         devices = all_devices.filtered(lambda d: d.id in device_ids) if device_ids else all_devices
@@ -33,7 +33,7 @@ class GpsDashboard(models.AbstractModel):
         rows = self.env['fleet.gps.daily'].search_read(domain, [
             'device_id', 'date', 'distance_km', 'moving_hours', 'idle_hours', 'stopped_hours', 'max_speed', 'avg_speed',
             'trip_count', 'over_count', 'harsh_brake', 'harsh_accel', 'score', 'hour_moving', 'speed_hist'])
-        limit = self.env['ir.config_parameter'].sudo().get_int('elblasy_fleet_gps.speed_limit') or 80
+        limit = int(self.env['ir.config_parameter'].sudo().get_param('elblasy_fleet_gps.speed_limit') or 0) or 80
 
         sum_ = lambda key: sum(r[key] for r in rows)  # noqa: E731
         moving_h = sum_('moving_hours')
@@ -118,8 +118,8 @@ class GpsDashboard(models.AbstractModel):
         if len(days) <= 31:
             rows = [{'label': str(d), 'values': [round(v, 2) for v in by_day_hours.get(d, [0.0] * 24)]} for d in days]
             return {'mode': 'day', 'rows': rows, 'max': max((v for r in rows for v in r['values']), default=0)}
-        names = [self.env._("Mon"), self.env._("Tue"), self.env._("Wed"), self.env._("Thu"), self.env._("Fri"), self.env._("Sat"), self.env._("Sun")]
-        acc = [[0.0] * 24 for _ in range(7)]
+        names = [_("Mon"), _("Tue"), _("Wed"), _("Thu"), _("Fri"), _("Sat"), _("Sun")]
+        acc = [[0.0] * 24 for __ in range(7)]
         for d, hours in by_day_hours.items():
             for i, v in enumerate(hours):
                 acc[d.weekday()][i] += v
@@ -129,7 +129,6 @@ class GpsDashboard(models.AbstractModel):
     @api.model
     def _insights(self, devices, rows, by_dev, d_from, d_to, limit):
         """Plain-language findings, most useful first. Each is {level: good|warn|info, text}."""
-        _ = self.env._
         out = []
         km = sum(r['distance_km'] for r in rows)
         span = (d_to - d_from).days + 1

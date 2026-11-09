@@ -1,12 +1,12 @@
 import logging
 from datetime import timedelta, timezone
 
-from psycopg2.extras import Json
+from psycopg2.extras import Json, execute_values
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models, tools
 from odoo.exceptions import UserError
 
-from .traccar_client import parse_time
+from .traccar_client import parse_time, commit_progress
 
 _logger = logging.getLogger(__name__)
 
@@ -42,8 +42,11 @@ class GpsPosition(models.Model):
     address = fields.Char()
     attributes = fields.Json()
 
-    _device_position_uniq = models.UniqueIndex('(device_id, traccar_id)', "Duplicate position.")
-    _device_fix_idx = models.Index('(device_id, fix_time)')
+    _sql_constraints = [('device_position_uniq', 'unique(device_id, traccar_id)', "Duplicate position.")]
+
+    def init(self):
+        super().init()
+        tools.create_index(self.env.cr, 'fleet_gps_position_device_fix_idx', self._table, ['device_id', 'fix_time'])
 
     # ----- ingestion -------------------------------------------------------------------------------------------------
     @api.model
@@ -87,7 +90,7 @@ class GpsPosition(models.Model):
         if rows:
             # a fixed order: two writers (push, poll, history import) inserting overlapping rows in different orders can deadlock
             rows.sort(key=lambda r: (r[0], r[2]))
-            done = self.env.cr.execute_values("""
+            done = execute_values(self.env.cr._obj, """
                 INSERT INTO fleet_gps_position (device_id, company_id, traccar_id, fix_time, server_time, latitude,
                     longitude, altitude, speed, course, valid, ignition, motion, battery, odometer, address, attributes)
                 VALUES %s ON CONFLICT (device_id, traccar_id) DO NOTHING RETURNING id""", rows, fetch=True)
@@ -114,14 +117,14 @@ class GpsPosition(models.Model):
     @api.model
     def _cron_purge(self):
         self.env['fleet.gps.event']._cron_purge()
-        days = self.env['ir.config_parameter'].sudo().get_int('elblasy_fleet_gps.retention_days') or 30
+        days = int(self.env['ir.config_parameter'].sudo().get_param('elblasy_fleet_gps.retention_days') or 0) or 30
         cutoff = fields.Datetime.now() - timedelta(days=days)
         while True:
             self.env.cr.execute("""DELETE FROM fleet_gps_position WHERE id IN (
                 SELECT id FROM fleet_gps_position WHERE fix_time < %s LIMIT %s)""", (cutoff, PURGE_BATCH))
             if self.env.cr.rowcount < PURGE_BATCH:
                 break
-            if not self.env['ir.cron']._commit_progress(self.env.cr.rowcount):
+            if not commit_progress(self.env, self.env.cr.rowcount):
                 break
 
     # ----- playback ----------------------------------------------------------------------------------------------------
@@ -131,18 +134,19 @@ class GpsPosition(models.Model):
         ``[ms, lat, lon, km/h, course, ignition]``. ``day`` (yyyy-mm-dd) is a local day of the reports timezone, else
         ``start`` / ``end`` are UTC datetimes. Read from the stored positions; when there are none (a day older than
         the retention, or never received) it is fetched from Traccar on the fly and not stored."""
-        self.check_access('read')
+        self.check_access_rights('read')
         device = self.env['fleet.gps.device'].browse(device_id).exists()
         if not device:
-            raise UserError(self.env._("Unknown device."))
-        device.check_access('read')  # the raw query below does not apply record rules: this does
+            raise UserError(_("Unknown device."))
+        device.check_access_rights('read')
+        device.check_access_rule('read')  # the raw query below does not apply record rules: this does
         if day:
             daily = self.env['fleet.gps.daily']
             d_start, d_end = daily._day_bounds(fields.Date.to_date(day), daily._tz())
         else:
             d_start, d_end = fields.Datetime.to_datetime(start), fields.Datetime.to_datetime(end)
         if not d_start or not d_end or d_end <= d_start or d_end - d_start > MAX_WINDOW:
-            raise UserError(self.env._("Choose a window of at most 48 hours."))
+            raise UserError(_("Choose a window of at most 48 hours."))
         self.env.cr.execute("""
             SELECT (extract(epoch FROM fix_time) * 1000)::bigint, latitude, longitude, speed, course, ignition
               FROM fleet_gps_position
@@ -178,7 +182,7 @@ class GpsPosition(models.Model):
                        'category': device.category or 'default', 'color': device.color or False},
             'window': [fields.Datetime.to_string(d_start), fields.Datetime.to_string(d_end)],
             'pts': pts, 'source': source, 'truncated': len(pts) >= MAX_POINTS,
-            'limit': self.env['ir.config_parameter'].sudo().get_int('elblasy_fleet_gps.speed_limit') or 80,
+            'limit': int(self.env['ir.config_parameter'].sudo().get_param('elblasy_fleet_gps.speed_limit') or 0) or 80,
             'icon_size': self.env['fleet.gps.device']._icon_size(),
             'stops': [{'start': fields.Datetime.to_string(s['start_time']), 'end': fields.Datetime.to_string(s['end_time']),
                        'lat': s['latitude'], 'lon': s['longitude'], 'ign': s['ignition'], 'place': s['place'] or '',

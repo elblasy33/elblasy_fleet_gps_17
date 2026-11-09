@@ -22,17 +22,17 @@
         <field name="name">fleet.gps.geofence.list</field>
         <field name="model">fleet.gps.geofence</field>
         <field name="arch" type="xml">
-            <list>
+            <tree>
                 <field name="name"/>
                 <field name="description"/>
                 <field name="server_id"/>
-            </list>
+            </tree>
         </field>
     </record>
     <record id="gps_geofence_action" model="ir.actions.act_window">
         <field name="name">Geofences</field>
         <field name="res_model">fleet.gps.geofence</field>
-        <field name="view_mode">list</field>
+        <field name="view_mode">tree</field>
     </record>
     <menuitem id="menu_gps_config" name="Configuration" parent="menu_gps_root" sequence="90" groups="group_gps_manager"/>
     <menuitem id="menu_gps_servers" name="Servers" parent="menu_gps_config" action="gps_server_action" sequence="10"/>
